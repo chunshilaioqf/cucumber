@@ -3,7 +3,7 @@
 # 用法：macos-bundle.sh <universal二进制> <版本号> <输出目录>
 set -euo pipefail
 
-BIN_PATH="${1:?用法: macos-bundle.sh <universal二进制> <版本> <输出目录>"
+BIN_PATH="${1:?用法: macos-bundle.sh <universal二进制> <版本> <输出目录>}"
 VER="${2:?缺版本号}"
 DIST="${3:?缺输出目录}"
 APP_NAME="Cucumber.app"
