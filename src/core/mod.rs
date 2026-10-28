@@ -6,3 +6,4 @@ pub mod log_parser;
 pub mod process_manager;
 pub mod skill_installer;
 pub mod sys_observer;
+pub mod update;

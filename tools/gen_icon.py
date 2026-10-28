@@ -138,6 +138,7 @@ def main():
     rgba128 = render(128)
     open(os.path.join(OUT, "icon_512.png"), "wb").write(encode_png(512, 512, rgba512))
     open(os.path.join(OUT, "icon_128.rgba"), "wb").write(rgba128)
+    open(os.path.join(OUT, "icon_64.rgba"), "wb").write(render(64))
     open(os.path.join(OUT, "icon.ico"), "wb").write(encode_ico(encode_png(256, 256, render(256)), 256))
     open(os.path.join(OUT, "AppIcon.icns"), "wb").write(
         encode_icns([(b"ic08", encode_png(256, 256, render(256))),

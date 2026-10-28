@@ -3,27 +3,6 @@
 
 use windui::prelude::*;
 
-/// 仪表盘统计卡片（FR-DASH-01）。
-pub fn stat_card(label: &str, value: Signal<String>, accent: Option<Color>) -> Element {
-    let v = Element::label_signal(value).font_size(15.0);
-    let v = match accent {
-        Some(c) => v.fg(c),
-        None => v.font_weight(600),
-    };
-    Element::col()
-        .padding_xy(14, 12)
-        .spacing(4)
-        .bg_role(Role::Surface)
-        .corner(10.0)
-        .border_role(Role::Border, 1)
-        .child(
-            Element::label(label)
-                .fg_role(Role::TextMuted)
-                .font_size(12.0),
-        )
-        .child(v)
-}
-
 /// 主题语义色（供日志级别着色等使用，避免硬编码遍布页面）。
 pub mod colors {
     use windui::geometry::Color;

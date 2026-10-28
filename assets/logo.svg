@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 黄瓜 cucumber 品牌图标（矢量源）：
+     绿色渐变圆角底板 + 斜置黄瓜（胶囊体·高光·花端·疣点）。
+     位图资产（icon_512.png / icon.ico / AppIcon.icns / icon_128.rgba）
+     由 tools/gen_icon.py 以同款造型参数确定性生成，两者保持一致。 -->
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#35B55A"/>
+      <stop offset="1" stop-color="#1C7A38"/>
+    </linearGradient>
+    <linearGradient id="melon" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0A3818"/>
+      <stop offset="0.55" stop-color="#0F4D22"/>
+      <stop offset="1" stop-color="#125C2A"/>
+    </linearGradient>
+    <clipPath id="board">
+      <rect x="0" y="0" width="512" height="512" rx="115"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#board)">
+    <rect x="0" y="0" width="512" height="512" fill="url(#bg)"/>
+    <!-- 黄瓜主体：绕中心旋转 36° 的胶囊 -->
+    <g transform="rotate(36 256 256)">
+      <rect x="182" y="120" width="148" height="272" rx="74" fill="url(#melon)"/>
+      <!-- 高光带 -->
+      <rect x="214" y="150" width="26" height="212" rx="13" fill="#6FD98A" opacity="0.85"/>
+      <!-- 花端 -->
+      <ellipse cx="256" cy="146" rx="42" ry="26" fill="#E9F6C8"/>
+      <!-- 疣点 -->
+      <g fill="#DCF2DF" opacity="0.92">
+        <circle cx="300" cy="196" r="8"/>
+        <circle cx="222" cy="248" r="7"/>
+        <circle cx="298" cy="300" r="7"/>
+        <circle cx="236" cy="344" r="6"/>
+        <circle cx="288" cy="374" r="6"/>
+        <circle cx="248" cy="196" r="5"/>
+      </g>
+    </g>
+  </g>
+</svg>

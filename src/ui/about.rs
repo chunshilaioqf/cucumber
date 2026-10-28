@@ -37,6 +37,37 @@ pub fn page(ui: &UiCtx) -> Element {
                 )
                 .fg(kit::colors::GRAY)
                 .font_size(12.0),
+            )
+            .child(
+                Element::hstack()
+                    .spacing(6)
+                    .child(
+                        Element::label(format!(
+                            "{}：",
+                            crate::ui::i18n::tr(ui.lang.get(), "h.repo")
+                        ))
+                        .font_size(12.5),
+                    )
+                    .child(Element::link(crate::core::update::REPO_URL).on_click({
+                        let ui = ui.clone();
+                        move |_| {
+                            let (rt, tx) = (ui.rt.clone(), ui.tx.clone());
+                            rt.spawn(async move {
+                                let _ = crate::platform::browser::open_url(
+                                    crate::core::update::REPO_URL,
+                                )
+                                .await;
+                                let _ = tx.send(crate::ui::UiMsg::ToastOk("已打开仓库页面".into()));
+                            });
+                        }
+                    })),
+            )
+            .child(
+                Element::label(format!(
+                    "{}：chunshilaioqf（贡献者见仓库提交历史）",
+                    crate::ui::i18n::tr(ui.lang.get(), "h.author")
+                ))
+                .font_size(12.5),
             ),
     );
 
@@ -85,6 +116,11 @@ pub fn page(ui: &UiCtx) -> Element {
             .child(
                 Element::label(format!("配置文件：{}", ui.app.config_path.display()))
                     .font_size(12.5),
+            )
+            .child(
+                Element::label("GPU 指标：sysinfo 尚未提供 GPU 传感器接口，仪表盘以占位卡显示（任务 5 已知限制）")
+                    .fg(kit::colors::GRAY)
+                    .font_size(11.5),
             ),
     );
 

@@ -1,25 +1,27 @@
-//! 仪表盘（FR-DASH-01~03）：只读概览，指标经 Signal 定向刷新（NFR-PERF-01）。
+//! 仪表盘（任务 5 重做）：圆环仪表网格 —— CPU / 内存 / 磁盘 / 网络 / GPU，
+//! 每类独立半透明色卡；下方统计行与接口状态。指标经 Signal 定向刷新（NFR-PERF-01）。
 
 use windui::prelude::*;
 
-use super::kit;
-use super::UiCtx;
+use super::gauge::gauge_card;
+use super::{kit, UiCtx};
 
 pub fn page(ui: &UiCtx) -> Element {
-    let cards = Element::grid(
+    // ---- 仪表网格：2×2 大卡 + 统计侧栏（GPU 说明卡） ----
+    let gauges = Element::grid(
         3,
-        12,
+        14,
         vec![
-            kit::stat_card("已配置进程总数", ui.d_total, None),
-            kit::stat_card("运行中进程数", ui.d_running, Some(kit::colors::GREEN)),
-            kit::stat_card("已配置服务总数", ui.d_services, Some(kit::colors::BLUE)),
-            kit::stat_card("本机 CPU 使用率", ui.d_cpu, Some(kit::colors::ORANGE)),
-            kit::stat_card("本机内存使用率", ui.d_mem, Some(kit::colors::ORANGE)),
-            kit::stat_card("对外接口监听状态", ui.d_api, Some(kit::colors::GREEN)),
+            gauge_card(ui.g_cpu, ui.t.d_cpu, ui.sub_cpu, kit::colors::GREEN, 36),
+            gauge_card(ui.g_mem, ui.t.d_mem, ui.sub_mem, kit::colors::BLUE, 36),
+            gauge_card(ui.g_disk, ui.t.d_disk, ui.sub_disk, kit::colors::ORANGE, 36),
+            gauge_card(ui.g_net, ui.t.d_net, ui.sub_net, kit::colors::RED, 36),
+            gpu_card(ui),
+            stats_card(ui),
         ],
     );
 
-    let hint = Element::label("仪表盘为只读概览；进程操作入口在「进程」页（FR-DASH-03）")
+    let hint = Element::label_signal(ui.t.d_hint)
         .fg_role(Role::TextMuted)
         .font_size(12.0);
 
@@ -27,8 +29,105 @@ pub fn page(ui: &UiCtx) -> Element {
         Element::col()
             .fill()
             .padding(16)
-            .spacing(12)
-            .child(cards)
+            .spacing(14)
+            .child(gauges)
             .child(hint),
     )
+}
+
+/// GPU 卡：sysinfo 无 GPU 能力（帮助页说明），显示占位仪表 + 说明。
+fn gpu_card(ui: &UiCtx) -> Element {
+    let card_bg = windui::geometry::Color::rgba(0x88, 0x88, 0x88, 30);
+    Element::col()
+        .fill()
+        .padding(10)
+        .bg(card_bg)
+        .corner(14.0)
+        .spacing(2)
+        .child(
+            Element::label_signal(ui.t.d_gpu)
+                .fg_role(Role::TextMuted)
+                .font_size(12.5),
+        )
+        .child(
+            Element::label("sysinfo does not expose GPU sensors")
+                .fg_role(Role::TextMuted)
+                .font_size(11.0),
+        )
+        .child(
+            Element::label_signal(ui.sub_gpu)
+                .fg_role(Role::TextMuted)
+                .font_size(11.0),
+        )
+        .child(Element::flex_spacer())
+}
+
+/// 统计卡：进程/服务/接口状态（FR-DASH-01）。
+fn stats_card(ui: &UiCtx) -> Element {
+    let card_bg = windui::geometry::Color::rgba(0x3E, 0x6E, 0xB0, 30);
+    Element::col()
+        .fill()
+        .padding(14)
+        .bg(card_bg)
+        .corner(14.0)
+        .spacing(8)
+        .child(
+            Element::col()
+                .spacing(2)
+                .child(
+                    Element::label_signal(ui.t.d_procs)
+                        .fg_role(Role::TextMuted)
+                        .font_size(11.5),
+                )
+                .child(
+                    Element::label_signal(ui.d_total)
+                        .font_size(16.0)
+                        .font_weight(600),
+                ),
+        )
+        .child(
+            Element::col()
+                .spacing(2)
+                .child(
+                    Element::label_signal(ui.t.d_running)
+                        .fg_role(Role::TextMuted)
+                        .font_size(11.5),
+                )
+                .child(
+                    Element::label_signal(ui.d_running)
+                        .font_size(16.0)
+                        .font_weight(600)
+                        .fg(kit::colors::GREEN),
+                ),
+        )
+        .child(
+            Element::col()
+                .spacing(2)
+                .child(
+                    Element::label_signal(ui.t.d_svcs)
+                        .fg_role(Role::TextMuted)
+                        .font_size(11.5),
+                )
+                .child(
+                    Element::label_signal(ui.d_services)
+                        .font_size(16.0)
+                        .font_weight(600)
+                        .fg(kit::colors::BLUE),
+                ),
+        )
+        .child(Element::divider())
+        .child(
+            Element::col()
+                .spacing(2)
+                .child(
+                    Element::label_signal(ui.t.d_api)
+                        .fg_role(Role::TextMuted)
+                        .font_size(11.5),
+                )
+                .child(
+                    Element::label_signal(ui.d_api)
+                        .font_size(12.5)
+                        .fg(kit::colors::GREEN),
+                ),
+        )
 }

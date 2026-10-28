@@ -23,21 +23,21 @@ pub fn page(ui: &UiCtx) -> Element {
                 .spacing(10)
                 .child(Element::dropdown_signal(ui.log_proc_names, ui.log_proc).width(150))
                 .child(Element::dropdown_signal(ui.log_src_names, ui.log_src).width(120))
-                .child(Element::text_input(ui.log_q, "搜索消息体（子串）").width(220))
-                .child(Element::text_input(ui.log_tag, "标签（子串）").width(120)),
+                .child(Element::text_input(ui.log_q, ui.t.l_search.get()).width(220))
+                .child(Element::text_input(ui.log_tag, ui.t.l_tag.get()).width(120)),
         )
         .child(
             Element::hstack()
                 .width_match()
                 .spacing(10)
-                .child(Element::label("级别：").fg_role(Role::TextMuted))
+                .child(Element::label_signal(ui.t.l_level).fg_role(Role::TextMuted))
                 .child(Element::checkbox("ERROR", ui.log_levels[0]))
                 .child(Element::checkbox("WARN", ui.log_levels[1]))
                 .child(Element::checkbox("INFO", ui.log_levels[2]))
                 .child(Element::checkbox("DEBUG", ui.log_levels[3]))
                 .child(Element::checkbox("TRACE", ui.log_levels[4]))
                 .child(Element::flex_spacer())
-                .child(Element::label("跟随").fg_role(Role::TextMuted))
+                .child(Element::label_signal(ui.t.l_follow).fg_role(Role::TextMuted))
                 .child(Element::switch(ui.log_follow))
                 .child(Element::button("查询").on_click({
                     let ui = ui.clone();
@@ -85,7 +85,7 @@ pub fn page(ui: &UiCtx) -> Element {
 
     let empty = {
         let lines = ui.log_lines;
-        Element::label("无匹配行。调整过滤条件后点击「查询」。")
+        Element::label_signal(ui.t.l_empty)
             .fg_role(Role::TextMuted)
             .visible_when(move || lines.with(|r| r.is_empty()))
     };
@@ -157,7 +157,8 @@ fn render_line(line: &LogLine, no: usize, q: &str) -> Element {
     }
     Element::rich(RichDoc::new().para(para))
         .width_match()
-        .padding_xy(8, 3)
+        .margin_xy(0, 2)
+        .padding_xy(8, 4)
 }
 
 /// 发起一次日志查询（阻塞索引与过滤在 spawn_blocking；结果经 channel 回 UI）。

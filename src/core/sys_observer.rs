@@ -20,10 +20,21 @@ pub struct Snapshot {
     pub mem_used_bytes: u64,
     pub mem_total_bytes: u64,
     pub procs: Vec<ProcSnapshot>,
+    /// 根分区磁盘（任务 5）
+    pub disk_used_bytes: u64,
+    pub disk_total_bytes: u64,
+    /// 网络速率（字节/秒，两次采样差值）
+    pub net_down_bps: u64,
+    pub net_up_bps: u64,
+    /// GPU：sysinfo 无此能力，恒为 None（帮助页说明限制）
+    pub gpu_percent: Option<f32>,
 }
 
 pub struct SysObserver {
     sys: System,
+    disks: sysinfo::Disks,
+    nets: sysinfo::Networks,
+    last_net: Option<(u64, u64, std::time::Instant)>,
 }
 
 impl Default for SysObserver {
@@ -39,7 +50,16 @@ impl SysObserver {
         sys.refresh_cpu_usage();
         sys.refresh_memory();
         sys.refresh_processes(ProcessesToUpdate::All, true);
-        Self { sys }
+        let mut disks = sysinfo::Disks::new();
+        disks.refresh(false);
+        let mut nets = sysinfo::Networks::new();
+        nets.refresh(true);
+        Self {
+            sys,
+            disks,
+            nets,
+            last_net: None,
+        }
     }
 
     /// 刷新并产出快照。调用间隔需 ≥ 200ms（sysinfo CPU 采样下限）。
@@ -47,6 +67,35 @@ impl SysObserver {
         self.sys.refresh_cpu_usage();
         self.sys.refresh_memory();
         self.sys.refresh_processes(ProcessesToUpdate::All, true);
+        self.disks.refresh(false);
+        self.nets.refresh(true);
+
+        // 磁盘：取容量最大的挂载点作为主盘
+        let (mut disk_used, mut disk_total) = (0u64, 0u64);
+        for d in self.disks.list() {
+            let total = d.total_space();
+            if total > disk_total {
+                disk_total = total;
+                disk_used = total - d.available_space();
+            }
+        }
+
+        // 网络：全接口收发字节差值 → 速率
+        let (mut rx, mut tx) = (0u64, 0u64);
+        for data in self.nets.list().values() {
+            rx += data.total_received();
+            tx += data.total_transmitted();
+        }
+        let now = std::time::Instant::now();
+        let (net_down_bps, net_up_bps) = match self.last_net.replace((rx, tx, now)) {
+            Some((prx, ptx, at)) => {
+                let dt = now.duration_since(at).as_secs_f64().max(0.001);
+                let d = (rx.saturating_sub(prx)) as f64 / dt;
+                let u = (tx.saturating_sub(ptx)) as f64 / dt;
+                (d as u64, u as u64)
+            }
+            None => (0, 0),
+        };
 
         let cpus = self.sys.cpus();
         let cpu_percent = if cpus.is_empty() {
@@ -73,6 +122,11 @@ impl SysObserver {
             mem_used_bytes: self.sys.used_memory(),
             mem_total_bytes: self.sys.total_memory(),
             procs,
+            disk_used_bytes: disk_used,
+            disk_total_bytes: disk_total,
+            net_down_bps,
+            net_up_bps,
+            gpu_percent: None,
         }
     }
 }

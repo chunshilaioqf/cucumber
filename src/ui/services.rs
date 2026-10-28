@@ -22,7 +22,7 @@ pub fn page(ui_ref: &UiCtx) -> Element {
 
     let empty = {
         let svc = ui.svc;
-        Element::label("当前没有运行中的 Web 服务。")
+        Element::label_signal(ui.t.sv_empty)
             .fg_role(Role::TextMuted)
             .visible_when(move || svc.with(|r| r.is_empty()))
     };
@@ -67,6 +67,7 @@ fn row(ui: &UiCtx, r: SvcRow) -> Element {
     Element::row()
         .width_match()
         .cross(Align::Center)
+        .margin_xy(0, 3)
         .padding_xy(10, 8)
         .bg_role(Role::Surface)
         .corner(8.0)

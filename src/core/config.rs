@@ -147,6 +147,27 @@ pub struct General {
     /// 日志分页大小 50–1000，默认 100（FR-LOG-05）
     #[serde(default = "default_page_size")]
     pub log_page_size: usize,
+    /// 主题模式：light / dark / system（任务 3）
+    #[serde(default = "default_theme")]
+    pub theme_mode: String,
+    /// 界面字族；空 = 平台默认
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub font_family: Option<String>,
+    /// 字号缩放 0.8–1.5，默认 1.0
+    #[serde(default = "default_font_scale")]
+    pub font_scale: f32,
+    /// 窗口背景覆盖色（#RRGGBBAA）；None = 跟随主题
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bg_color: Option<String>,
+    /// 系统托盘开关（默认关，任务 8；重启生效）
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub tray_enabled: bool,
+    /// 界面语言（任务 3）；zh-Hans 为默认
+    #[serde(default = "default_lang")]
+    pub lang: String,
+    /// 用户选择跳过的更新版本（任务 7）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skip_update: Option<String>,
 }
 
 fn default_refresh() -> u64 {
@@ -158,6 +179,15 @@ fn default_port() -> u16 {
 fn default_page_size() -> usize {
     100
 }
+fn default_theme() -> String {
+    "system".into()
+}
+fn default_font_scale() -> f32 {
+    1.0
+}
+fn default_lang() -> String {
+    "zh-Hans".into()
+}
 
 impl Default for General {
     fn default() -> Self {
@@ -168,6 +198,13 @@ impl Default for General {
             auth_token: None,
             skill_dir: None,
             log_page_size: default_page_size(),
+            theme_mode: default_theme(),
+            font_family: None,
+            font_scale: default_font_scale(),
+            bg_color: None,
+            tray_enabled: false,
+            lang: default_lang(),
+            skip_update: None,
         }
     }
 }

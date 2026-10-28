@@ -10,7 +10,7 @@ use crate::core::config::{Address, LogSource, ProcessConfig, ProcessType};
 
 pub fn page(ui_ref: &UiCtx) -> Element {
     let ui = ui_ref.clone();
-    let add_btn = Element::button("＋ 添加进程").on_click({
+    let add_btn = Element::button(ui.t.c_add).on_click({
         let ui = ui.clone();
         move |_| open_editor_new(&ui)
     });
@@ -23,11 +23,9 @@ pub fn page(ui_ref: &UiCtx) -> Element {
     )
     .weight(1.0);
 
-    let empty_hint = Element::label(
-        "还没有配置进程。点击「添加进程」，或只填「系统观察名」来观察系统进程（FR-PROC-07）。",
-    )
-    .fg_role(Role::TextMuted)
-    .visible_when(move || ui.rows.with(|r| r.is_empty()));
+    let empty_hint = Element::label_signal(ui.t.p_empty)
+        .fg_role(Role::TextMuted)
+        .visible_when(move || ui.rows.with(|r| r.is_empty()));
 
     let body = Element::col()
         .fill()
@@ -39,7 +37,7 @@ pub fn page(ui_ref: &UiCtx) -> Element {
                 .child(add_btn)
                 .child(Element::flex_spacer())
                 .child(
-                    Element::label("状态自动刷新")
+                    Element::label_signal(ui.t.p_auto)
                         .fg_role(Role::TextMuted)
                         .font_size(12.0),
                 ),
@@ -162,6 +160,7 @@ fn row(ui: &UiCtx, r: ProcRow) -> Element {
     Element::row()
         .width_match()
         .cross(Align::Center)
+        .margin_xy(0, 3)
         .padding_xy(10, 8)
         .bg_role(Role::Surface)
         .corner(8.0)
@@ -548,7 +547,7 @@ fn edit_dialog(ui: &UiCtx) -> Element {
 // ---------- 删除确认（FR-PROC-12） ----------
 
 fn delete_dialog(ui: &UiCtx) -> Element {
-    let warn = Element::label("⚠ 该进程当前正在运行：删除仅移除配置，不会停止进程，建议先停止。")
+    let warn = Element::label_signal(ui.t.p_delwarn)
         .fg(kit::colors::ORANGE)
         .font_size(12.5)
         .visible_when({
