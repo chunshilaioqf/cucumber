@@ -3,6 +3,22 @@
 本项目的所有显著变更都记录在本文件中。
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.2.0] - 2026-10-28
+
+### 新增
+
+- **分发包全面升级**（回应"按操作系统 + CPU 架构分组、开箱即 GUI"）：
+  - macOS：发布 **DMG 安装包**（`Cucumber.app`：Info.plist + AppIcon.icns + universal 二进制，双击挂载、拖入 Applications 即可启动图形界面；同包覆盖 Apple Silicon 与 Intel）。
+  - Windows：新增 **ARM64**（aarch64-msvc）架构包；exe 资源**内嵌应用图标**（资源管理器/任务栏显示）。
+  - Linux：新增 **ARM64**（aarch64-gnu，原生 arm64 runner 构建）架构包。
+  - 下载指引：Release 说明与 README 均提供**按系统/芯片分组的下载表**与安装/解封步骤；`SHA256SUMS` 覆盖全部包。
+- **应用图标**（三平台）：`tools/gen_icon.py` 纯 Python 确定性生成（PNG/ICO/ICNS/RGBA），窗口与 Dock 显示黄瓜图标；生成器入库可复现。
+
+### 变更
+
+- release.yml 构建矩阵扩展为 6 目标（win-x64/win-arm64/linux-x64/linux-arm64/macos-x64/macos-arm64 → lipo → DMG）；macOS 中间产物不再直接发布 tar.gz。
+- 版本号 0.1.0 → 0.2.0。
+
 ## [0.1.0] - 2026-10-28
 
 首个可用版本：阶段一（核心闭环）+ 阶段二（日志查看）+ 阶段三（服务与对外接口）+ 阶段四（文档与 CI）全部落地。

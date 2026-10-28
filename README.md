@@ -14,6 +14,23 @@
 | Skill | 内置 `cucumber-manager` 一键安装（目录 + SKILL.md，锁清单防重复，拒绝可执行脚本） |
 | 帮助 | 版本/环境信息、接口快速诊断、常见问题 |
 
+## 下载安装
+
+到 [Releases](https://github.com/chunshilaioqf/cucumber/releases/latest) 按系统与芯片选择安装包：
+
+| 系统 | 芯片 | 安装包 | 安装方式 |
+|---|---|---|---|
+| macOS 12+ | Apple Silicon（M1/M2/M3/M4） | `cucumber-x.y.z-macos-universal.dmg` | 双击挂载 → 把「黄瓜」拖入 Applications → 启动台打开 |
+| macOS 12+ | Intel | `cucumber-x.y.z-macos-universal.dmg`（同包双架构） | 同上 |
+| Windows 10+ | x64（主流 PC） | `cucumber-x.y.z-windows-x86_64.zip` | 解压 → 双击 `cucumber.exe`（含图标） |
+| Windows 10+ | ARM64（Surface 等） | `cucumber-x.y.z-windows-arm64.zip` | 同上 |
+| Linux | x86_64 | `cucumber-x.y.z-linux-x86_64.tar.gz` | `tar xf` 后运行 `./cucumber` |
+| Linux | ARM64 | `cucumber-x.y.z-linux-aarch64.tar.gz` | 同上 |
+
+> macOS 首次运行若被 Gatekeeper 拦截：右键 App →「打开」，或
+> `xattr -d com.apple.quarantine /Applications/Cucumber.app`。
+> 所有包附带 `SHA256SUMS` 可校验完整性。
+
 ## 快速开始
 
 ```bash

@@ -322,7 +322,7 @@ dependencies = [
 
 [[package]]
 name = "cucumber"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "axum",
  "directories",
@@ -336,6 +336,7 @@ dependencies = [
  "toml 0.8.23",
  "tower",
  "windui",
+ "winresource",
 ]
 
 [[package]]
@@ -2731,6 +2732,16 @@ checksum = "7d6f32a0ff4a9f6f01231eb2059cc85479330739333e0e58cadf03b6af2cca10"
 dependencies = [
  "cfg-if",
  "windows-sys",
+]
+
+[[package]]
+name = "winresource"
+version = "0.1.34"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2bc6d36480b829272a5bdabf08e6dca8004761c1da7e35efef800540c66221b"
+dependencies = [
+ "toml 1.1.8+spec-1.1.0",
+ "version_check",
 ]
 
 [[package]]

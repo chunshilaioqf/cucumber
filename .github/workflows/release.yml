@@ -44,6 +44,18 @@ jobs:
             os: windows-latest
             target: x86_64-pc-windows-msvc
             ext: .exe
+          - label: windows-arm64
+            os: windows-latest
+            target: aarch64-pc-windows-msvc
+            ext: .exe
+          - label: linux-x86_64
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            ext: ""
+          - label: linux-aarch64
+            os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            ext: ""
           - label: macos-aarch64
             os: macos-14
             target: aarch64-apple-darwin
@@ -51,10 +63,6 @@ jobs:
           - label: macos-x86_64
             os: macos-14
             target: x86_64-apple-darwin
-            ext: ""
-          - label: linux-x86_64
-            os: ubuntu-22.04
-            target: x86_64-unknown-linux-gnu
             ext: ""
     steps:
       - uses: actions/checkout@v4
@@ -91,22 +99,6 @@ jobs:
           Copy-Item "LICENSE*" $dir -ErrorAction SilentlyContinue
           Compress-Archive -Path "$dir/*" -DestinationPath "dist/$env:BIN_NAME-$ver-${{ matrix.label }}.zip" -Force
 
-      - name: Package (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          set -euo pipefail
-          ver="${GITHUB_REF_NAME#v}"
-          bin="target/${{ matrix.target }}/release/${BIN_NAME}"
-          # 去除调试符号，减小体积
-          strip "$bin" || true
-          mkdir -p "dist/${BIN_NAME}-${ver}-${{ matrix.label }}"
-          cp "$bin" "dist/${BIN_NAME}-${ver}-${{ matrix.label }}/"
-          cp README.md LICENSE* "dist/${BIN_NAME}-${ver}-${{ matrix.label }}/" 2>/dev/null || true
-          tar -czf "dist/${BIN_NAME}-${ver}-${{ matrix.label }}.tar.gz" \
-            -C "dist/${BIN_NAME}-${ver}-${{ matrix.label }}" .
-          # 供 universal job 使用的中间产物
-          cp "$bin" "dist/${BIN_NAME}-${{ matrix.label }}.raw"
-
       - name: Package (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -120,15 +112,26 @@ jobs:
           tar -czf "dist/${BIN_NAME}-${ver}-${{ matrix.label }}.tar.gz" \
             -C "dist/${BIN_NAME}-${ver}-${{ matrix.label }}" .
 
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          set -euo pipefail
+          ver="${GITHUB_REF_NAME#v}"
+          bin="target/${{ matrix.target }}/release/${BIN_NAME}"
+          strip "$bin" || true
+          # 供 universal job 使用的中间产物（最终用户包为 DMG）
+          mkdir -p dist
+          cp "$bin" "dist/${BIN_NAME}-${{ matrix.label }}.raw"
+
       - uses: actions/upload-artifact@v4
         with:
           name: pkg-${{ matrix.label }}
           path: dist/*
           if-no-files-found: error
 
-  # ---------- macOS 通用二进制（lipo 合并） ----------
+  # ---------- macOS 通用 DMG（lipo 合并 + .app bundle） ----------
   macos-universal:
-    name: Build (macos-universal)
+    name: Build (macos-universal DMG)
     needs: build
     runs-on: macos-14
     steps:
@@ -140,7 +143,7 @@ jobs:
           pattern: pkg-macos-*
           merge-multiple: true
 
-      - name: Merge arm64 + x86_64 into universal binary
+      - name: Merge arm64 + x86_64 into universal, bundle as DMG
         run: |
           set -euo pipefail
           ver="${GITHUB_REF_NAME#v}"
@@ -150,16 +153,14 @@ jobs:
             -output "${BIN_NAME}-universal"
           chmod +x "${BIN_NAME}-universal"
           lipo -info "${BIN_NAME}-universal"
-          mkdir -p "dist/${BIN_NAME}-${ver}-macos-universal"
-          cp "${BIN_NAME}-universal" "dist/${BIN_NAME}-${ver}-macos-universal/${BIN_NAME}"
-          cp README.md LICENSE* "dist/${BIN_NAME}-${ver}-macos-universal/" 2>/dev/null || true
-          tar -czf "dist/${BIN_NAME}-${ver}-macos-universal.tar.gz" \
-            -C "dist/${BIN_NAME}-${ver}-macos-universal" .
+          mkdir -p dist
+          bash scripts/macos-bundle.sh "${BIN_NAME}-universal" "${ver}" dist
+          ls -lh dist
 
       - uses: actions/upload-artifact@v4
         with:
           name: pkg-macos-universal
-          path: dist/*
+          path: dist/*.dmg
           if-no-files-found: error
 
   # ---------- 发布到 GitHub Release ----------
@@ -168,6 +169,8 @@ jobs:
     needs: [build, macos-universal]
     runs-on: ubuntu-22.04
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           path: dist
@@ -180,16 +183,45 @@ jobs:
       - name: Generate SHA256SUMS
         run: |
           cd dist
-          sha256sum *.zip *.tar.gz > SHA256SUMS 2>/dev/null || true
+          sha256sum *.zip *.tar.gz *.dmg > SHA256SUMS 2>/dev/null || true
           cat SHA256SUMS
+
+      - name: Compose release body (按系统与芯片分组的下载指引)
+        run: |
+          set -euo pipefail
+          ver="${GITHUB_REF_NAME#v}"
+          cat > /tmp/body.md <<BODY
+          ## 下载
+
+          按你的操作系统与芯片选择（文件在本页底部 Assets 中）：
+
+          | 系统 | 芯片 | 安装包 | 安装方式 |
+          |---|---|---|---|
+          | macOS 12+ | Apple Silicon（M1/M2/M3/M4） | \`cucumber-${ver}-macos-universal.dmg\` | 双击挂载 → 把「黄瓜」拖入 Applications → 启动台打开 |
+          | macOS 12+ | Intel | \`cucumber-${ver}-macos-universal.dmg\`（同包双架构） | 同上 |
+          | Windows 10+ | x64（主流 PC） | \`cucumber-${ver}-windows-x86_64.zip\` | 解压 → 双击 \`cucumber.exe\` |
+          | Windows 10+ | ARM64（Surface 等） | \`cucumber-${ver}-windows-arm64.zip\` | 同上 |
+          | Linux | x86_64 | \`cucumber-${ver}-linux-x86_64.tar.gz\` | \`tar xf\` 后运行 \`./cucumber\`（X11） |
+          | Linux | ARM64 | \`cucumber-${ver}-linux-aarch64.tar.gz\` | 同上 |
+
+          > macOS 首次运行如被 Gatekeeper 拦截：右键 App →「打开」，或终端执行
+          > \`xattr -d com.apple.quarantine /Applications/Cucumber.app\`
+          > （未做 Developer ID 签名公证，正式分发见 README 说明）。
+
+          ## 校验
+
+          下载后可用 \`SHA256SUMS\` 校验完整性：\`sha256sum -c SHA256SUMS\`。
+          BODY
+          echo "body written"
 
       - name: Create / update release
         uses: softprops/action-gh-release@v2
         with:
-          # 预发布版本（tag 含 -rc / -beta / -alpha）自动标记
           prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
+          body_path: /tmp/body.md
           generate_release_notes: true
           files: |
             dist/*.zip
             dist/*.tar.gz
+            dist/*.dmg
             dist/SHA256SUMS

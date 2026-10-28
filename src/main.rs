@@ -203,5 +203,14 @@ fn gui_main(smoke: Option<u64>) {
     }
 
     let root = ui::app::build(&uictx);
-    app.content(root).centered().min_size(980, 620).run();
+    let mut app2 = app.centered().min_size(980, 620);
+    // 窗口/Dock 图标：原始 RGBA 内嵌（Windows 标题栏/任务栏、macOS Dock）
+    if let Some(icon) = windui::icon::WindowIcon::from_rgba(
+        128,
+        128,
+        include_bytes!("../assets/icon_128.rgba").to_vec(),
+    ) {
+        app2 = app2.icon(icon);
+    }
+    app2.content(root).run();
 }

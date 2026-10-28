@@ -3,3 +3,5 @@ Cargo.lock.bak
 *.log
 dist/
 .DS_Store
+.cargo/
+vendor/
