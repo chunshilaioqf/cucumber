@@ -3,6 +3,14 @@
 本项目的所有显著变更都记录在本文件中。
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.2.1] - 2026-10-28
+
+### 修复 / 改进（macOS 分发体验）
+
+- **DMG 标准安装视图**：左侧 Cucumber.app、右侧 `Applications` 文件夹快捷方式、背景引导图（绿色箭头指向 Applications）、128px 大图标与窗口布局（osascript 写入 .DS_Store）——打开 DMG 即可按惯例拖拽安装。
+- **Gatekeeper 指引完善**：DMG 内附「首次运行说明.txt」；Release 与 README 更新为 macOS 14/15（Sonoma/Sequoia）的实际解封路径（系统设置 → 隐私与安全性 → 仍要打开；旧系统右键打开）+ `xattr -dr` 一条命令。
+- 修复 `macos-bundle.sh` 参数展开闭合括号笔误导致的打包失败；`tools/gen_icon.py` 支持非正方形 PNG 并新增 `dmg_bg.png` 背景生成。
+
 ## [0.2.0] - 2026-10-28
 
 ### 新增

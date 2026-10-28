@@ -27,8 +27,10 @@
 | Linux | x86_64 | `cucumber-x.y.z-linux-x86_64.tar.gz` | `tar xf` 后运行 `./cucumber` |
 | Linux | ARM64 | `cucumber-x.y.z-linux-aarch64.tar.gz` | 同上 |
 
-> macOS 首次运行若被 Gatekeeper 拦截：右键 App →「打开」，或
-> `xattr -d com.apple.quarantine /Applications/Cucumber.app`。
+> macOS 首次运行若被 Gatekeeper 拦截：**系统设置 → 隐私与安全性 → 安全性一栏 →「仍要打开」**
+> （macOS 13- 为右键 →「打开」），或终端执行
+> `xattr -dr com.apple.quarantine /Applications/Cucumber.app`。DMG 内附「首次运行说明.txt」。
+> 彻底消除提示需要 Apple Developer 账号（$99/年）做签名公证，欢迎 PR 接入。
 > 所有包附带 `SHA256SUMS` 可校验完整性。
 
 ## 快速开始

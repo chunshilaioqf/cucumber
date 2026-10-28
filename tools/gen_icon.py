@@ -111,10 +111,10 @@ def png_chunk(tag, data):
     return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
 
 
-def encode_png(size, rgba):
-    raw = b"".join(b"\x00" + rgba[y * size * 4:(y + 1) * size * 4] for y in range(size))
+def encode_png(width, height, rgba):
+    raw = b"".join(b"\x00" + rgba[y * width * 4:(y + 1) * width * 4] for y in range(height))
     return (b"\x89PNG\r\n\x1a\n"
-            + png_chunk(b"IHDR", struct.pack(">IIBBBBB", size, size, 8, 6, 0, 0, 0))
+            + png_chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0))
             + png_chunk(b"IDAT", zlib.compress(raw, 9))
             + png_chunk(b"IEND", b""))
 
@@ -136,15 +136,58 @@ def main():
     rgba512 = render(512)
     rgba1024 = render(1024)
     rgba128 = render(128)
-    open(os.path.join(OUT, "icon_512.png"), "wb").write(encode_png(512, rgba512))
+    open(os.path.join(OUT, "icon_512.png"), "wb").write(encode_png(512, 512, rgba512))
     open(os.path.join(OUT, "icon_128.rgba"), "wb").write(rgba128)
-    open(os.path.join(OUT, "icon.ico"), "wb").write(encode_ico(encode_png(256, render(256)), 256))
+    open(os.path.join(OUT, "icon.ico"), "wb").write(encode_ico(encode_png(256, 256, render(256)), 256))
     open(os.path.join(OUT, "AppIcon.icns"), "wb").write(
-        encode_icns([(b"ic08", encode_png(256, render(256))),
-                     (b"ic09", encode_png(512, rgba512)),
-                     (b"ic10", encode_png(1024, rgba1024))]))
+        encode_icns([(b"ic08", encode_png(256, 256, render(256))),
+                     (b"ic09", encode_png(512, 512, rgba512)),
+                     (b"ic10", encode_png(1024, 1024, rgba1024))]))
     print("assets:", ", ".join(sorted(os.listdir(OUT))))
 
 
 if __name__ == "__main__":
     main()
+
+
+# ---------- DMG 背景引导图（660x400：拖拽安装视图） ----------
+
+def render_dmg_bg(w=660, h=400):
+    """浅色渐变 + 中央箭头（左 app → 右 Applications）+ 两个图标落位圆框。"""
+    TOP, BOT = (0xF0, 0xF7, 0xEE), (0xDC, 0xEC, 0xD8)
+    ARROW = (0x2F, 0xA8, 0x4F)
+    RING = (0x9C, 0xC9, 0xA2)
+    px = bytearray(w * h * 4)
+    lx, rx, cy = 180, 480, 190
+    ring_r = 82
+    ay0, ay1 = lx + ring_r + 16, rx - ring_r - 26
+    for yy in range(h):
+        for xx in range(w):
+            i = (yy * w + xx) * 4
+            base = lerp(TOP, BOT, yy / h)
+            for cx in (lx, rx):
+                d = math.hypot(xx - cx, yy - cy)
+                ring = smooth(ring_r, ring_r - 3, d) * smooth(ring_r - 14, ring_r - 11, d)
+                base = lerp(base, RING, ring * 0.9)
+            on_rod = smooth(ay0 - 2, ay0 + 2, xx) * smooth(ay1 + 2, ay1 - 2, xx) * smooth(cy + 8, cy + 6, yy) * smooth(cy - 8, cy - 6, yy)
+            base = lerp(base, ARROW, on_rod)
+            t = (xx - (ay1 - 26)) / 30.0
+            if 0 <= t <= 1:
+                half = 22 * (1 - t)
+                if abs(yy - cy) < half:
+                    tri = smooth(0.35, 0.65, 1 - t)
+                    base = lerp(base, ARROW, tri)
+            px[i:i+3] = base
+            px[i+3] = 255
+    return bytes(px), w, h
+
+
+def gen_dmg_bg():
+    os.makedirs(OUT, exist_ok=True)
+    rgba, w, h = render_dmg_bg()
+    open(os.path.join(OUT, "dmg_bg.png"), "wb").write(encode_png(w, h, rgba))
+    print("dmg_bg.png ok")
+
+
+if os.environ.get("GEN_DMG_BG"):
+    gen_dmg_bg()
