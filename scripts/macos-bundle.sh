@@ -4,6 +4,7 @@
 # 背景引导图带箭头；内附「首次运行说明.txt」处理 Gatekeeper。
 # 用法：macos-bundle.sh <universal二进制> <版本号> <输出目录>
 set -euo pipefail
+set -x
 
 BIN_PATH="${1:?用法: macos-bundle.sh <universal二进制> <版本> <输出目录>}"
 VER="${2:?缺版本号}"
@@ -74,7 +75,7 @@ RW="$(mktemp -u "${DIST}/rw.XXXXXX").dmg"
 hdiutil create -volname "${VOL}" -size 48m -fs HFS+ -attach "${RW}" -quiet
 # 拷贝进挂载卷（含隐藏文件）
 cp -R "${STAGE}/" "/Volumes/${VOL}/"
-osascript <<OSA
+osascript <<OSA || echo "::warning::Finder 布局失败，退化为默认视图 DMG"
 tell application "Finder"
   tell disk "${VOL}"
     open
@@ -95,7 +96,10 @@ tell application "Finder"
   end tell
 end tell
 OSA
-hdiutil detach "/Volumes/${VOL}" -quiet
+for i in 1 2 3; do
+  hdiutil detach "/Volumes/${VOL}" -quiet && break
+  sleep 2
+done
 sleep 1
 
 DMG="${DIST}/cucumber-${VER}-macos-universal.dmg"
