@@ -1,0 +1,195 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  BIN_NAME: cucumber # 与 Cargo.toml 的 [[bin]] name 保持一致
+
+jobs:
+  # ---------- 版本一致性校验：tag 与 Cargo.toml 必须一致（7.5） ----------
+  check-version:
+    name: Check tag/version consistency
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare tag with Cargo.toml version
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME#v}"
+          CARGO_VER=$(grep -m1 '^version' Cargo.toml | sed 's/version *= *"\(.*\)"/\1/')
+          echo "tag=${TAG} cargo=${CARGO_VER}"
+          if [ "${TAG}" != "${CARGO_VER}" ]; then
+            echo "::error::tag(${TAG}) 与 Cargo.toml(${CARGO_VER}) 版本不一致"
+            exit 1
+          fi
+
+  # ---------- 构建各平台产物 ----------
+  build:
+    name: Build (${{ matrix.label }})
+    needs: check-version
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: windows-x86_64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            ext: .exe
+          - label: macos-aarch64
+            os: macos-14
+            target: aarch64-apple-darwin
+            ext: ""
+          - label: macos-x86_64
+            os: macos-14
+            target: x86_64-apple-darwin
+            ext: ""
+          - label: linux-x86_64
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            ext: ""
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux GUI dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libx11-dev libxcb1-dev libxkbcommon-dev libxkbcommon-x11-dev \
+            libwayland-dev pkg-config
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-${{ matrix.target }}
+
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      # 打包：各平台统一输出 <bin>-<version>-<label>.zip / .tar.gz
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ver = "${{ github.ref_name }}".TrimStart("v")
+          $dir = "dist/$env:BIN_NAME-$ver-${{ matrix.label }}"
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          Copy-Item "target/${{ matrix.target }}/release/$env:BIN_NAME${{ matrix.ext }}" $dir
+          Copy-Item "README.md" $dir -ErrorAction SilentlyContinue
+          Copy-Item "LICENSE*" $dir -ErrorAction SilentlyContinue
+          Compress-Archive -Path "$dir/*" -DestinationPath "dist/$env:BIN_NAME-$ver-${{ matrix.label }}.zip" -Force
+
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          set -euo pipefail
+          ver="${GITHUB_REF_NAME#v}"
+          bin="target/${{ matrix.target }}/release/${BIN_NAME}"
+          # 去除调试符号，减小体积
+          strip "$bin" || true
+          mkdir -p "dist/${BIN_NAME}-${ver}-${{ matrix.label }}"
+          cp "$bin" "dist/${BIN_NAME}-${ver}-${{ matrix.label }}/"
+          cp README.md LICENSE* "dist/${BIN_NAME}-${ver}-${{ matrix.label }}/" 2>/dev/null || true
+          tar -czf "dist/${BIN_NAME}-${ver}-${{ matrix.label }}.tar.gz" \
+            -C "dist/${BIN_NAME}-${ver}-${{ matrix.label }}" .
+          # 供 universal job 使用的中间产物
+          cp "$bin" "dist/${BIN_NAME}-${{ matrix.label }}.raw"
+
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          ver="${GITHUB_REF_NAME#v}"
+          bin="target/${{ matrix.target }}/release/${BIN_NAME}"
+          strip "$bin" || true
+          mkdir -p "dist/${BIN_NAME}-${ver}-${{ matrix.label }}"
+          cp "$bin" "dist/${BIN_NAME}-${ver}-${{ matrix.label }}/"
+          cp README.md LICENSE* "dist/${BIN_NAME}-${ver}-${{ matrix.label }}/" 2>/dev/null || true
+          tar -czf "dist/${BIN_NAME}-${ver}-${{ matrix.label }}.tar.gz" \
+            -C "dist/${BIN_NAME}-${ver}-${{ matrix.label }}" .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pkg-${{ matrix.label }}
+          path: dist/*
+          if-no-files-found: error
+
+  # ---------- macOS 通用二进制（lipo 合并） ----------
+  macos-universal:
+    name: Build (macos-universal)
+    needs: build
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: pkg-macos-*
+          merge-multiple: true
+
+      - name: Merge arm64 + x86_64 into universal binary
+        run: |
+          set -euo pipefail
+          ver="${GITHUB_REF_NAME#v}"
+          lipo -create \
+            "artifacts/${BIN_NAME}-macos-aarch64.raw" \
+            "artifacts/${BIN_NAME}-macos-x86_64.raw" \
+            -output "${BIN_NAME}-universal"
+          chmod +x "${BIN_NAME}-universal"
+          lipo -info "${BIN_NAME}-universal"
+          mkdir -p "dist/${BIN_NAME}-${ver}-macos-universal"
+          cp "${BIN_NAME}-universal" "dist/${BIN_NAME}-${ver}-macos-universal/${BIN_NAME}"
+          cp README.md LICENSE* "dist/${BIN_NAME}-${ver}-macos-universal/" 2>/dev/null || true
+          tar -czf "dist/${BIN_NAME}-${ver}-macos-universal.tar.gz" \
+            -C "dist/${BIN_NAME}-${ver}-macos-universal" .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pkg-macos-universal
+          path: dist/*
+          if-no-files-found: error
+
+  # ---------- 发布到 GitHub Release ----------
+  release:
+    name: Publish GitHub Release
+    needs: [build, macos-universal]
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: pkg-*
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -lh dist
+
+      - name: Generate SHA256SUMS
+        run: |
+          cd dist
+          sha256sum *.zip *.tar.gz > SHA256SUMS 2>/dev/null || true
+          cat SHA256SUMS
+
+      - name: Create / update release
+        uses: softprops/action-gh-release@v2
+        with:
+          # 预发布版本（tag 含 -rc / -beta / -alpha）自动标记
+          prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
+          generate_release_notes: true
+          files: |
+            dist/*.zip
+            dist/*.tar.gz
+            dist/SHA256SUMS

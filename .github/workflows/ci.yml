@@ -1,0 +1,111 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # ---------- 代码规范与静态检查 ----------
+  lint:
+    name: Lint (fmt + clippy)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux GUI dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libx11-dev libxcb1-dev libxkbcommon-dev libxkbcommon-x11-dev \
+            libwayland-dev pkg-config
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: lint
+
+      - name: cargo fmt
+        run: cargo fmt --all -- --check
+
+      - name: cargo clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+  # ---------- 单元测试与编译检查（三平台） ----------
+  test:
+    name: Test / Build check (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+          - os: macos-14
+            target: aarch64-apple-darwin
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux GUI dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libx11-dev libxcb1-dev libxkbcommon-dev libxkbcommon-x11-dev \
+            libwayland-dev pkg-config
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: test-${{ matrix.target }}
+
+      # core / api / platform 层单元测试（不启动 GUI）
+      - name: Run tests
+        run: cargo test --target ${{ matrix.target }}
+
+      # 完整编译（含 GUI），验证三平台均可产出二进制
+      - name: Build check (release)
+        run: cargo build --release --target ${{ matrix.target }}
+
+  # ---------- Linux GUI 冒烟测试 ----------
+  smoke-test-linux:
+    name: GUI smoke test (Linux / Xvfb)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install X11 + Xvfb
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libx11-dev libxcb1-dev libxkbcommon-dev libxkbcommon-x11-dev \
+            libwayland-dev pkg-config xvfb xauth
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: smoke
+
+      - name: Run app headless for a few seconds
+        run: |
+          cargo build --release
+          # 程序支持 --smoke-test：启动后 N 秒自动退出，返回 0 表示正常
+          xvfb-run -a --server-args="-screen 0 1280x800x24" \
+            timeout 25s ./target/release/cucumber --smoke-test 8
