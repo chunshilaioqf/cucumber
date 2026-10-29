@@ -10,10 +10,10 @@ use crate::ui::UiMsg;
 mod native {
     use super::*;
 
-    #[derive(Clone)]
     use tray_icon::menu::{Menu, MenuEvent, MenuItem};
     use tray_icon::{TrayIcon, TrayIconBuilder, TrayIconEvent};
 
+    #[derive(Clone)]
     pub struct TrayBridge {
         icon: TrayIcon,
         stats_item: MenuItem,
