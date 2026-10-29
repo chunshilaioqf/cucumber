@@ -95,6 +95,7 @@ fn gui_main(smoke: Option<u64>) {
         }
     };
     let handle = rt.handle().clone();
+    let probe_handle = rt.handle().clone();
     {
         let state = state.clone();
         std::thread::spawn(move || {
@@ -176,6 +177,31 @@ fn gui_main(smoke: Option<u64>) {
 
     // 启动时应用保存的主题/字体/背景设置（任务 3）
     ui::settings::apply_theme(&uictx);
+    // ---- 端口探测任务（0.3.1，ADR-14）：每刷新周期探测全部服务地址 ----
+    {
+        let state = state.clone();
+        probe_handle.spawn(async move {
+            loop {
+                let (secs, procs) = {
+                    let c = state.config.read().unwrap();
+                    (c.general.refresh_secs.max(1), c.processes.clone())
+                };
+                let result = core::port_probe::probe_all(&procs).await;
+                // 写共享表 + 融合进管理器状态（供 effective_state 使用）
+                if let Ok(mut m) = state.port_status.write() {
+                    *m = result.clone();
+                }
+                let mgr = state.mgr.clone();
+                for p in &procs {
+                    if let Some(up) = result.get(&p.id) {
+                        mgr.set_port_up(&p.id, *up);
+                    }
+                }
+                tokio::time::sleep(std::time::Duration::from_secs(secs)).await;
+            }
+        });
+    }
+
     // ---- 系统采集线程（ADR-06）----
     {
         let state = state.clone();

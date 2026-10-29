@@ -3,6 +3,7 @@
 pub mod config;
 pub mod log_index;
 pub mod log_parser;
+pub mod port_probe;
 pub mod process_manager;
 pub mod skill_installer;
 pub mod sys_observer;

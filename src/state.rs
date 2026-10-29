@@ -22,6 +22,8 @@ pub struct AppState {
     pub ws_port: AtomicU16,
     /// WS 事件通道
     pub events: EventTx,
+    /// 端口探测结果（proc_id → 是否连通；0.3.1，ADR-14）
+    pub port_status: RwLock<std::collections::HashMap<String, bool>>,
 }
 
 impl AppState {
@@ -35,6 +37,7 @@ impl AppState {
             http_port: AtomicU16::new(0),
             ws_port: AtomicU16::new(0),
             events,
+            port_status: RwLock::new(std::collections::HashMap::new()),
         })
     }
 

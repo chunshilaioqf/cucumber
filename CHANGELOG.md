@@ -3,6 +3,22 @@
 本项目的所有显著变更都记录在本文件中。
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.3.1] - 2026-10-28
+
+### 修复（严重）：外部运行的服务不可见
+
+**症状**：服务实际已启动并运行，管理程序却显示「已停止」，且不出现在「所有服务」页。
+
+**根因**：运行状态的唯一真相源是「本工具 start_command 启动的子进程仍存活」。三类真实场景全部误报：外部启动（systemctl/手动/nohup）；点火即走服务在**工具重启后**仍在运行（状态表清零）；spawn 子进程随工具退出被终止后由外部重新拉起。
+
+**修复（ADR-14）**：服务端口连通性升级为第二真相源，与状态机融合为「有效状态」：
+- 新增 `core/port_probe`：对配置了地址的 Web 服务周期 TCP 探测（800ms 超时，任一 tcp/http/https 地址连通即 up；udp 跳过）。
+- **发现运行**：端口 up 而状态机非 Running → 显示「运行中（外部）」并挂「端口✓」徽章；进入「所有服务」页与仪表盘运行计数；API 新增 `state_machine` / `port_up` / `externally_running` 字段。
+- **不否定运行**：端口 down 不推翻状态机（进程可能存活但端口未就绪），探测只做「发现」。
+- 「检查」按钮在未配置 check_command 时退化为端口探测（连通 = 健康）。
+
+**验证**：端到端复现——外部启动 `python3 -m http.server 18099`，黄瓜仅注册配置（从未 start）：state=运行中 / state_machine=已停止 / port_up=true / externally_running=true；服务列表由空变 1；dashboard running=1；check 端口探测 healthy=true。共 49 项单元测试（新增端口探测 3 项 + 状态融合 1 项）。
+
 ## [0.3.0] - 2026-10-28
 
 ### 新增（十项任务整体落地）

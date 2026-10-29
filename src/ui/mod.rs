@@ -441,7 +441,8 @@ impl UiCtx {
         let mut svc = Vec::new();
         for p in &cfg.processes {
             let st = self.app.mgr.status_of(&p.id);
-            let state = st.state_or_default();
+            // 0.3.1：端口探测连通的外部服务也进入服务列表
+            let state = st.effective_state();
             if state == State::Running {
                 running += 1;
                 if p.ptype == ProcessType::WebService {

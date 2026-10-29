@@ -180,6 +180,11 @@ fn row(ui: &UiCtx, r: ProcRow) -> Element {
                             Element::badge("系统观察")
                         } else {
                             Element::label("").width(0)
+                        })
+                        .child(if r.state_label.contains("外部") {
+                            Element::badge("端口✓")
+                        } else {
+                            Element::label("").width(0)
                         }),
                 ),
         )

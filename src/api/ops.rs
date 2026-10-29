@@ -19,8 +19,11 @@ fn proc_view(cfg: &ProcessConfig, state: &SharedState) -> Value {
         "name": cfg.name,
         "type": cfg.ptype,
         "type_label": cfg.ptype.label(),
-        "state": st.state_or_default().label(),
-        "state_raw": format!("{:?}", st.state_or_default()),
+        "state": st.effective_state().label(),
+        "state_raw": format!("{:?}", st.effective_state()),
+        "state_machine": st.state_or_default().label(),
+        "port_up": st.port_up,
+        "externally_running": st.externally_running(),
         "pid": st.pid,
         "observe_pid": st.observe_pid,
         "observe_only": cfg.is_observe_only(),
@@ -150,7 +153,8 @@ impl Ops {
             .filter(|p| p.ptype == crate::core::config::ProcessType::WebService)
             .filter(|p| {
                 let st = self.state.mgr.status_of(&p.id);
-                st.state_or_default() == crate::core::process_manager::State::Running
+                // 0.3.1：端口探测连通的外部启动服务同样列出（FR-SERV-01）
+                st.effective_state() == crate::core::process_manager::State::Running
             })
             .flat_map(|p| {
                 let st = self.state.mgr.status_of(&p.id);
@@ -176,7 +180,7 @@ impl Ops {
             .processes
             .iter()
             .filter(|p| {
-                self.state.mgr.status_of(&p.id).state_or_default()
+                self.state.mgr.status_of(&p.id).effective_state()
                     == crate::core::process_manager::State::Running
             })
             .count();

@@ -46,13 +46,35 @@ pub struct ProcStatus {
     pub last_output: String,
     /// 最近一次 check_command 的健康结论
     pub health: Option<bool>,
+    /// 端口探测结论（0.3.1，ADR-14）：配置了地址的服务，任一 TCP/http/https 端口连通为 true。
+    /// None = 未配置可探测地址。与状态机融合见 [`ProcStatus::effective_state`]。
+    pub port_up: Option<bool>,
 }
 
 impl ProcStatus {
     pub fn state_or_default(&self) -> State {
         self.state.unwrap_or(State::Stopped)
     }
+
+    /// 有效状态（0.3.1）：端口探测 up 时无论状态机如何，服务都视为运行中——
+    /// 覆盖外部启动（systemctl/手动/工具重启后仍在跑的点火即走服务）的场景。
+    pub fn effective_state(&self) -> State {
+        if self.port_up == Some(true) {
+            State::Running
+        } else {
+            self.state_or_default()
+        }
+    }
+
+    /// 是否为「外部启动」：端口通但状态机不认为在跑。
+    pub fn externally_running(&self) -> bool {
+        self.port_up == Some(true) && self.state_or_default() != State::Running
+    }
+
     pub fn state_label(&self) -> String {
+        if self.externally_running() {
+            return "运行中（外部）".to_string();
+        }
         match self.state_or_default() {
             State::Error if !self.last_error.is_empty() => format!("异常：{}", self.last_error),
             s => s.label().to_string(),
@@ -323,17 +345,31 @@ impl ProcessManager {
         false
     }
 
-    /// 健康检查（wait 语义，退出码 0 = 健康）。
+    /// 健康检查：优先 check_command（退出码 0 = 健康）；
+    /// 未配置命令但配置了服务地址时，退化为端口探测（0.3.1，ADR-14）。
     pub async fn check(&self, cfg: &ProcessConfig) -> Result<CommandOutput, String> {
-        let Some(cmd) = cfg.check_command.as_deref().filter(|s| !s.is_empty()) else {
-            return Err("未配置 check_command".into());
-        };
-        let out = commands::run_wait(cmd, cfg.work_dir.as_deref(), &cfg.env, 120).await;
+        if let Some(cmd) = cfg.check_command.as_deref().filter(|s| !s.is_empty()) {
+            let out = commands::run_wait(cmd, cfg.work_dir.as_deref(), &cfg.env, 120).await;
+            self.set_state(&cfg.id, |st| {
+                st.health = Some(out.ok());
+                st.last_output = out.summary();
+            });
+            return Ok(out);
+        }
+        // 端口探测兜底
+        let up = crate::core::port_probe::proc_port_up(&cfg.addresses)
+            .await
+            .ok_or_else(|| "未配置 check_command，也未配置可探测的服务地址".to_string())?;
         self.set_state(&cfg.id, |st| {
-            st.health = Some(out.ok());
-            st.last_output = out.summary();
+            st.health = Some(up);
+            st.port_up = Some(up);
+            st.last_output = format!("端口探测：{}", if up { "连通" } else { "不通" });
         });
-        Ok(out)
+        Ok(CommandOutput {
+            exit_code: Some(if up { 0 } else { 1 }),
+            stdout: format!("端口探测：{}", if up { "连通" } else { "不通" }),
+            stderr: String::new(),
+        })
     }
 
     /// 安装依赖。
@@ -348,6 +384,11 @@ impl ProcessManager {
         let out = commands::run_wait(cmd, cfg.work_dir.as_deref(), &cfg.env, 3600).await;
         self.set_state(&cfg.id, |st| st.last_output = out.summary());
         Ok(out)
+    }
+
+    /// 写入端口探测结论（0.3.1，ADR-14；由探测任务周期调用）。
+    pub fn set_port_up(&self, id: &str, up: bool) {
+        self.set_state(id, |st| st.port_up = Some(up));
     }
 
     /// 用系统快照刷新观察模式进程的状态（FR-PROC-07/13）。
@@ -466,6 +507,30 @@ mod tests {
         let out = mgr.check(&cfg).await.unwrap();
         assert!(out.ok());
         assert_eq!(mgr.status_of("t1").health, Some(true));
+    }
+
+    #[test]
+    fn effective_state_fuses_port_probe() {
+        let mut st = ProcStatus {
+            state: Some(State::Stopped),
+            ..Default::default()
+        };
+        // 未配置地址：port_up=None → 沿用状态机
+        assert_eq!(st.effective_state(), State::Stopped);
+        assert!(!st.externally_running());
+        // 端口通 + 状态机 Stopped → 运行中（外部）
+        st.port_up = Some(true);
+        assert_eq!(st.effective_state(), State::Running);
+        assert!(st.externally_running());
+        assert_eq!(st.state_label(), "运行中（外部）");
+        // 状态机 Running + 端口通 → 正常运行（非外部）
+        st.state = Some(State::Running);
+        assert!(!st.externally_running());
+        // 设计边界：端口 down 不推翻状态机（进程可能活着但端口未就绪）——
+        // 端口探测只用于「发现运行」，不用于「否定运行」
+        st.state = Some(State::Stopped);
+        st.port_up = Some(false);
+        assert_eq!(st.effective_state(), State::Stopped);
     }
 
     #[test]
