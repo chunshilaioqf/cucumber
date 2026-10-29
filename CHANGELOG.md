@@ -3,6 +3,24 @@
 本项目的所有显著变更都记录在本文件中。
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.4.0] - 2026-10-29
+
+### 新增 / 修复（七项任务 + 图标一致性）
+
+- **系统托盘跨平台重构（任务 5，ADR-15）**：Linux 改用 `ksni`（DBus StatusNotifierItem，纯 Rust、零 GTK/C 依赖，X11/Wayland 通用），Windows/macOS 用 `tray-icon`。菜单首项实时统计、tooltip 周期刷新、左键唤起、右键退出。默认关，设置页开关，重启生效。
+- **真正的应用内更新（任务 6）**：更新对话框新增「下载并安装」——按平台自动选择资产（DMG/zip/tar.gz，下载前校验资产存在），macOS 后台脚本挂载替换 /Applications/Cucumber.app 并执行 `xattr -dr com.apple.quarantine`（用户不再需要手动放行），Windows 等待旧进程退出后替换 exe，两者均自动重启；原按钮改名「查看网页下载」。
+- **AI 提示词双版本（任务 4）**：对外接口页拆分「复制 MCP 接入提示」与「复制 Skill 接入提示」；Skill 版点击前检查技能是否已安装，未装则提示先安装。
+- **GPU 使用率（任务 3）**：macOS 经 `ioreg` 性能统计尽力解析（Intel `Device Utilization %` / Apple Silicon `IOGPUUtilization`，含十六进制与 0–10000 刻度归一），仪表盘 GPU 卡接真实数据；其他平台 N/A。
+- **刷新频率（任务 3）**：默认 3s → **1s**（配置项可调）。
+- **字体选择器（任务 2）**：设置页新增「选择系统字体」按钮——枚举系统字体（Linux fc-list / Windows 注册表 / macOS 字体目录）并在对话框中**用每种字体实际预览渲染**，点击即应用。
+- **图标资产与 SVG 一致（任务 8）**：`assets/logo.svg` 成为唯一设计真相源：`examples/gen_icon_assets.rs`（resvg）渲染 → `tools/package_icon_assets.py` 派生 icns/ico/窗口与托盘 RGBA，安装后的应用图标即 SVG 图形。
+- **列表行右侧间距（任务 7）**：进程/服务/日志行水平 padding 10→14。
+- **本地化扩展（任务 1）**：新增顶部菜单栏、编辑表单全部字段、更新对话框按钮、字体选择器、AI 提示按钮等约 40 组文案 ×9 语言。
+
+### 变更
+
+- 依赖新增 `ksni`（Linux）/`tray-icon`（Win/mac）；56 项测试全过（新增 GPU 解析 4 项、updater 2 项、托盘桥接由冒烟覆盖）。
+
 ## [0.3.1] - 2026-10-28
 
 ### 修复（严重）：外部运行的服务不可见

@@ -110,28 +110,6 @@ fn gui_main(smoke: Option<u64>) {
     let mut app = App::new("黄瓜 · 进程与服务管理", 1200, 780);
     let theme = app.theme_handle();
 
-    // 系统托盘（任务 8）：按配置开关构建；菜单统计项绑定信号（弹出时现取）
-    let tray_stats_menu = signal(String::new());
-    let tray_h = if tray_enabled {
-        app = app.tray(
-            Tray::new()
-                .tooltip("黄瓜 · 进程与服务管理")
-                .icon_rgba(64, 64, include_bytes!("../assets/icon_64.rgba"))
-                .on_left_click(|ctx| ctx.show_window())
-                .on_double_click(|ctx| ctx.show_window())
-                .menu(vec![
-                    TrayMenuItem::item(tray_stats_menu, |_ctx| {}).enabled(signal(false)),
-                    TrayMenuItem::separator(),
-                    TrayMenuItem::item("显示窗口", |ctx| ctx.show_window()),
-                    TrayMenuItem::separator(),
-                    TrayMenuItem::item("退出", |ctx| ctx.quit()),
-                ]),
-        );
-        Some(app.tray_handle())
-    } else {
-        None
-    };
-
     let slot: std::rc::Rc<std::cell::RefCell<Option<ui::UiCtx>>> =
         std::rc::Rc::new(std::cell::RefCell::new(None));
     let slot2 = slot.clone();
@@ -155,6 +133,16 @@ fn gui_main(smoke: Option<u64>) {
                     ctx.toast_err("本地接口不可达");
                 }
             }
+            ui::UiMsg::TrayShow => {
+                ctx.show_window();
+            }
+            ui::UiMsg::TrayQuit => {
+                ctx.request_close();
+            }
+            ui::UiMsg::FontsLoaded(list) => {
+                ui.font_list.set(list);
+                ui.font_dialog.set(true);
+            }
             ui::UiMsg::UpdateAvailable(ver, url) => {
                 // 用户已跳过的版本不再提示（任务 7）
                 let skipped = ui
@@ -171,8 +159,13 @@ fn gui_main(smoke: Option<u64>) {
             }
         }
     });
-    let mut uictx = ui::UiCtx::new(state.clone(), handle, tx, theme);
-    uictx.tray = tray_h.clone();
+    let mut uictx = ui::UiCtx::new(state.clone(), handle, tx.clone(), theme);
+    // 系统托盘（任务 5）：platform::tray 跨平台实现（win/mac tray-icon；linux ksni）
+    if tray_enabled {
+        if let Some(bridge) = platform::tray::TrayBridge::start(tx.clone(), String::new()) {
+            uictx.tray = Some(std::sync::Arc::new(bridge));
+        }
+    }
     *slot.borrow_mut() = Some(uictx.clone());
 
     // 启动时应用保存的主题/字体/背景设置（任务 3）
@@ -245,23 +238,13 @@ fn gui_main(smoke: Option<u64>) {
     }
     {
         let ui = uictx.clone();
-        let tray_menu_sig = tray_stats_menu;
         app = app.on_interval(Duration::from_secs(1), move |_ctx| {
             // 日志跟随
             ui::logs::follow_tick(&ui);
-            // 托盘统计与 tooltip（任务 8；每 tick 刷新，UI 线程内安全）
-            if let Some(th) = ui.tray.as_ref() {
+            // 托盘统计（任务 5）：周期更新菜单首项与 tooltip
+            if let Some(tb) = ui.tray.as_ref() {
                 let s = ui.tray_stats.with(|v| v.clone());
-                let text = format!(
-                    "黄瓜 · {}",
-                    if s.is_empty() {
-                        "运行中".to_string()
-                    } else {
-                        s.clone()
-                    }
-                );
-                tray_menu_sig.set(text.clone());
-                th.set_tooltip(&text);
+                tb.set_stats(&s);
             }
             // 语言下拉桥接（dropdown 无回调；变化即应用）
             let idx = ui.lang_sel.get();

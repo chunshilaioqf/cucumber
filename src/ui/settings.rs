@@ -114,8 +114,24 @@ pub fn page(ui_ref: &UiCtx) -> Element {
                             apply_theme(&ui);
                             persist(&ui);
                         }
-                    })
-                    .tooltip("Microsoft YaHei UI / PingFang SC / monospace"),
+                    }),
+            )
+            .child(
+                // 任务 2：枚举系统字体并打开选择对话框
+                Element::button(f("st.fontpick"))
+                    .small()
+                    .outline()
+                    .on_click({
+                        let ui = ui.clone();
+                        move |_| {
+                            let rt = ui.rt.clone();
+                            let tx = ui.tx.clone();
+                            rt.spawn_blocking(move || {
+                                let list = crate::platform::fonts::list_families();
+                                let _ = tx.send(crate::ui::UiMsg::FontsLoaded(list));
+                            });
+                        }
+                    }),
             ),
     );
 

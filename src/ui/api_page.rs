@@ -108,14 +108,39 @@ pub fn page(ui_ref: &UiCtx) -> Element {
                     .fg_role(Role::TextMuted)
                     .font_size(12.5),
             )
-            .child(Element::button(f("a.ai")).on_click({
-                let ui = ui.clone();
-                move |ctx| {
-                    let prompt = build_ai_prompt(&ui);
-                    ctx.clipboard_set(&prompt);
-                    ctx.toast_ok("AI 配置提示已复制，粘贴给任意 AI 助手即可");
-                }
-            })),
+            .child(
+                Element::hstack()
+                    .spacing(8)
+                    // MCP 版（任务 4）
+                    .child(Element::button(f("a.aimcp")).on_click({
+                        let ui = ui.clone();
+                        move |ctx| {
+                            let prompt = build_ai_prompt(&ui);
+                            ctx.clipboard_set(&prompt);
+                            ctx.toast_ok("MCP 接入提示已复制，粘贴给任意 AI 助手即可");
+                        }
+                    }))
+                    // Skill 版（任务 4）：先检查技能是否已安装
+                    .child(Element::button(f("a.aiskill")).on_click({
+                        let ui = ui.clone();
+                        let not_installed = f("a.skillnot");
+                        move |ctx| {
+                            let installed = {
+                                let cfg = ui.app.config.read().unwrap();
+                                let dir =
+                                    cfg.general.skill_dir.clone().map(std::path::PathBuf::from);
+                                crate::core::skill_installer::installed(dir.as_deref())
+                            };
+                            if installed.is_empty() {
+                                ctx.toast_err(not_installed.clone());
+                                return;
+                            }
+                            let prompt = build_skill_prompt(&ui);
+                            ctx.clipboard_set(&prompt);
+                            ctx.toast_ok("Skill 接入提示已复制，粘贴给 AI 宿主即可");
+                        }
+                    })),
+            ),
     );
 
     let mcp_hint = Element::card(
@@ -184,6 +209,28 @@ fn build_ai_prompt(ui: &UiCtx) -> String {
         http = http,
         ws = ws,
         token = token
+    )
+}
+
+/// Skill 版提示词（任务 4）：指导 AI 宿主把已安装的黄瓜技能挂载进自己的技能目录。
+fn build_skill_prompt(ui: &UiCtx) -> String {
+    let cfg = ui.app.config.read().unwrap();
+    let token = cfg.general.auth_token.clone().unwrap_or_default();
+    let skill_dir = crate::core::skill_installer::default_skill_dir()
+        .map(|p| p.display().to_string())
+        .unwrap_or_else(|_| "~/.agents/skills".into());
+    let http = ui.app.http_port.load(std::sync::atomic::Ordering::Relaxed);
+    drop(cfg);
+    format!(
+        r#"我已安装「黄瓜 cucumber」进程管理的 Skill（目录：{skill_dir}/cucumber-manager/SKILL.md）。
+请把该 Skill 挂载进你的技能体系（读取 SKILL.md 并按其中的工具约定操作），然后：
+
+1. 读取 {skill_dir}/cucumber-manager/SKILL.md，掌握 MCP/HTTP 工具调用约定。
+2. 验证连接（HTTP 备用通道，令牌：{token}）：
+   curl -s -H "Authorization: Bearer {token}" http://127.0.0.1:{http}/api/health
+3. 之后按我的指令管理本机进程、服务与日志（启动/停止/检查/日志查询/仪表盘）。
+
+注意：令牌只在本机使用，不要写入公开仓库或日志。"#
     )
 }
 

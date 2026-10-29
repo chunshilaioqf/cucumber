@@ -25,9 +25,9 @@ pub fn build(ui_ref: &UiCtx) -> Element {
                 .shortcut("Ctrl+N")
                 .mnemonic('A'),
                 MenuItem::separator(),
-                MenuItem::run("退出(X)", |ctx| ctx.request_close(), false)
+                MenuItem::run(ui.t.m_exit.get(), |ctx| ctx.request_close(), false)
                     .shortcut("Alt+F4")
-                    .mnemonic('X'),
+                    .shortcut("Alt+F4"),
             ]
         }
     };
@@ -87,9 +87,9 @@ pub fn build(ui_ref: &UiCtx) -> Element {
     };
 
     let menu = Element::menu_bar(vec![
-        MenuBarEntry::new("文件(F)", file).mnemonic('F'),
-        MenuBarEntry::new("视图(V)", view).mnemonic('V'),
-        MenuBarEntry::new("帮助(H)", help).mnemonic('H'),
+        MenuBarEntry::new(ui_ref.t.m_file, file),
+        MenuBarEntry::new(ui_ref.t.m_view, view),
+        MenuBarEntry::new(ui_ref.t.m_help, help),
     ])
     .height(28)
     .padding_xy(4, 0)
@@ -176,8 +176,8 @@ fn update_dialog(ui: &UiCtx) -> Element {
         .child(
             Element::hstack()
                 .spacing(10)
-                // 立即更新：打开下载页
-                .child(Element::button(ui.t.u_now).on_click({
+                // 查看网页下载（任务 6：原「立即更新」改名）
+                .child(Element::button(ui.t.u_browse).on_click({
                     let ui = ui.clone();
                     move |_| {
                         let url = ui.update_url.get();
@@ -186,6 +186,39 @@ fn update_dialog(ui: &UiCtx) -> Element {
                         rt.spawn(async move {
                             let _ = crate::platform::browser::open_url(&url).await;
                             let _ = tx.send(crate::ui::UiMsg::ToastOk(toast));
+                        });
+                        ui.update_show.set(false);
+                    }
+                }))
+                // 下载并安装（任务 6）：平台包下载 → 后台脚本替换 → 自动重启
+                .child(Element::button(ui.t.u_install).on_click({
+                    let ui = ui.clone();
+                    move |ctx| {
+                        let tag = ui.update_ver.get();
+                        let (rt, tx) = (ui.rt.clone(), ui.tx.clone());
+                        let installing = ui.t.u_installing.get();
+                        ctx.toast_ok(&installing);
+                        rt.spawn(async move {
+                            let ver = tag.trim_start_matches('v').to_string();
+                            let Some(asset) = crate::core::updater::pick_asset_name(&ver) else {
+                                return;
+                            };
+                            if !crate::core::updater::asset_exists(&tag, &asset).await {
+                                let _ = tx.send(crate::ui::UiMsg::ToastErr(format!(
+                                    "Release 未找到资产 {asset}"
+                                )));
+                                return;
+                            }
+                            let url = crate::core::updater::asset_url(&tag, &asset);
+                            match crate::core::updater::download_and_install(&tag, &url).await {
+                                Ok(msg) => {
+                                    let _ = tx.send(crate::ui::UiMsg::ToastOk(msg));
+                                    let _ = tx.send(crate::ui::UiMsg::TrayQuit);
+                                }
+                                Err(e) => {
+                                    let _ = tx.send(crate::ui::UiMsg::ToastErr(e));
+                                }
+                            }
                         });
                         ui.update_show.set(false);
                     }

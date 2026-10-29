@@ -126,7 +126,7 @@ impl SysObserver {
             disk_total_bytes: disk_total,
             net_down_bps,
             net_up_bps,
-            gpu_percent: None,
+            gpu_percent: crate::core::gpu::gpu_percent(),
         }
     }
 }

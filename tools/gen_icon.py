@@ -132,19 +132,10 @@ def encode_icns(pngs):  # [(type_code, png_bytes)]
 
 
 def main():
-    os.makedirs(OUT, exist_ok=True)
-    rgba512 = render(512)
-    rgba1024 = render(1024)
-    rgba128 = render(128)
-    open(os.path.join(OUT, "icon_512.png"), "wb").write(encode_png(512, 512, rgba512))
-    open(os.path.join(OUT, "icon_128.rgba"), "wb").write(rgba128)
-    open(os.path.join(OUT, "icon_64.rgba"), "wb").write(render(64))
-    open(os.path.join(OUT, "icon.ico"), "wb").write(encode_ico(encode_png(256, 256, render(256)), 256))
-    open(os.path.join(OUT, "AppIcon.icns"), "wb").write(
-        encode_icns([(b"ic08", encode_png(256, 256, render(256))),
-                     (b"ic09", encode_png(512, 512, rgba512)),
-                     (b"ic10", encode_png(1024, 1024, rgba1024))]))
-    print("assets:", ", ".join(sorted(os.listdir(OUT))))
+    # 0.4.0 起：应用图标资产由 SVG 真相源派生
+    #（examples/gen_icon_assets.rs 渲染 + tools/package_icon_assets.py 派生），
+    # 本脚本只负责 DMG 背景引导图。
+    gen_dmg_bg()
 
 
 if __name__ == "__main__":

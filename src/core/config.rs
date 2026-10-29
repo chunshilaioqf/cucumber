@@ -171,7 +171,7 @@ pub struct General {
 }
 
 fn default_refresh() -> u64 {
-    3
+    1
 }
 fn default_port() -> u16 {
     0

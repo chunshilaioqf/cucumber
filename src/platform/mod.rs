@@ -2,4 +2,6 @@
 
 pub mod browser;
 pub mod commands;
+pub mod fonts;
 pub mod signals;
+pub mod tray;

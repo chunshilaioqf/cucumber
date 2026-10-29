@@ -3,7 +3,7 @@
 
 use windui::prelude::*;
 
-use super::gauge::gauge_card;
+use super::gauge::{gauge_card, Gauge};
 use super::{kit, UiCtx};
 
 pub fn page(ui: &UiCtx) -> Element {
@@ -35,31 +35,24 @@ pub fn page(ui: &UiCtx) -> Element {
     )
 }
 
-/// GPU 卡：sysinfo 无 GPU 能力（帮助页说明），显示占位仪表 + 说明。
+/// GPU 卡（任务 3）：macOS 经 ioreg 解析真实使用率；无数据时副文本显示 N/A。
 fn gpu_card(ui: &UiCtx) -> Element {
-    let card_bg = windui::geometry::Color::rgba(0x88, 0x88, 0x88, 30);
+    let card_bg = windui::geometry::Color::rgba(0x94, 0x6B, 0xD0, 30);
     Element::col()
         .fill()
         .padding(10)
         .bg(card_bg)
         .corner(14.0)
-        .spacing(2)
         .child(
-            Element::label_signal(ui.t.d_gpu)
-                .fg_role(Role::TextMuted)
-                .font_size(12.5),
+            Element::leaf()
+                .widget(Gauge::new(
+                    ui.g_gpu,
+                    ui.t.d_gpu,
+                    ui.sub_gpu,
+                    kit::colors::RED,
+                ))
+                .reactive(),
         )
-        .child(
-            Element::label("sysinfo does not expose GPU sensors")
-                .fg_role(Role::TextMuted)
-                .font_size(11.0),
-        )
-        .child(
-            Element::label_signal(ui.sub_gpu)
-                .fg_role(Role::TextMuted)
-                .font_size(11.0),
-        )
-        .child(Element::flex_spacer())
 }
 
 /// 统计卡：进程/服务/接口状态（FR-DASH-01）。

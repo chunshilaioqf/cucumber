@@ -100,10 +100,31 @@ pub fn tr(lang: Lang, key: &str) -> String {
     key.to_string()
 }
 
-// ---------- 键与译文 ----------
+// ---------- 键与译文（0.4.0 增补） ----------
+// 顶部菜单
+// nav.* 已有；菜单栏与页面内文案如下
 // 顺序：简体 / 繁體 / EN / 日 / 한 / Ру / De / Fr / Es
 #[rustfmt::skip]
 static TABLE: &[(&str, [&str; 9])] = &[
+    // 顶部菜单栏
+    ("m.file",    ["文件","檔案","File","ファイル","파일","Файл","Datei","Fichier","Archivo"]),
+    ("m.view",    ["视图","檢視","View","表示","보기","Вид","Ansicht","Affichage","Ver"]),
+    ("m.help",    ["帮助","說明","Help","ヘルプ","도움말","Справка","Hilfe","Aide","Ayuda"]),
+    ("m.exit",    ["退出","退出","Exit","終了","종료","Выход","Beenden","Quitter","Salir"]),
+    // 更新对话框（任务 6）
+    ("u.browse",  ["查看网页下载","查看網頁下載","Open download page","ダウンロードページを開く","다운로드 페이지 열기","Страница загрузок","Downloadseite öffnen","Page de téléchargement","Abrir página"]),
+    ("u.install", ["下载并安装","下載並安裝","Download & install","ダウンロードして更新","다운로드 후 설치","Скачать и установить","Herunterladen & installieren","Télécharger et installer","Descargar e instalar"]),
+    ("u.installing",["正在下载更新…","正在下載更新…","Downloading update…","更新をダウンロード中…","업데이트 다운로드 중…","Загрузка обновления…","Update wird geladen…","Téléchargement…","Descargando…"]),
+    // 字体选择（任务 2）
+    ("st.fontpick",["选择系统字体","選擇系統字型","Pick system font","システムフォント選択","시스템 글꼴 선택","Выбрать шрифт","Systemschrift wählen","Choisir la police","Elegir fuente"]),
+    ("st.fontlist",["系统字体（点击应用）","系統字型（點擊套用）","System fonts (click to apply)","システムフォント（クリックで適用）","시스템 글꼴(클릭 시 적용)","Системные шрифты","Systemschriftarten","Polices système","Fuentes del sistema"]),
+    // AI 提示词（任务 4）
+    ("a.aimcp",   ["复制 MCP 接入提示","複製 MCP 接入提示","Copy MCP prompt","MCPプロンプトをコピー","MCP 프롬프트 복사","Промпт MCP","MCP-Prompt","Invite MCP","Prompt MCP"]),
+    ("a.aiskill", ["复制 Skill 接入提示","複製 Skill 接入提示","Copy Skill prompt","Skillプロンプトをコピー","Skill 프롬프트 복사","Промпт Skill","Skill-Prompt","Invite Skill","Prompt Skill"]),
+    ("a.skillnot",["尚未安装技能，请先点击「安装 skill」","尚未安裝技能，請先點擊「安裝 skill」","Skill not installed yet; install it first","Skill未インストール。先にインストールしてください","Skill이 설치되어 있지 않습니다. 먼저 설치하세요","Skill не установлен; сначала установите","Skill nicht installiert; zuerst installieren","Skill non installé ; installez-le","Skill no instalado; instala primero"]),
+    // 对话框通用
+    ("c.close",   ["关闭","關閉","Close","閉じる","닫기","Закрыть","Schließen","Fermer","Cerrar"]),
+
     // 导航
     ("nav.dashboard", ["仪表盘","儀表盤","Dashboard","ダッシュボード","대시보드","Панель","Übersicht","Tableau de bord","Panel"]),
     ("nav.processes", ["进程","進程","Processes","プロセス","프로세스","Процессы","Prozesse","Processus","Procesos"]),
@@ -185,6 +206,22 @@ static TABLE: &[(&str, [&str; 9])] = &[
     ("st.trayhint", ["开启后在托盘显示统计信息（Linux 桌面不支持时自动忽略；重启应用后生效）","開啟後在工作列顯示統計資訊（Linux 桌面不支援時自動忽略；重啟應用後生效）","Show tray stats (ignored on unsupported desktops; takes effect after restart)","有効化で統計を表示（非対応デスクトップでは無視、再起動で反映）","켜면 통계 표시(미지원 데스크톱은 무시, 재시작 후 적용)","Статистика в трее (перезапуск)","Statistik im Tray (Neustart)","Stats dans la barre (redémarrage)","Stats en bandeja (reiniciar)"]),
     ("st.lang",     ["语言","語言","Language","言語","언어","Язык","Sprache","Langue","Idioma"]),
     ("st.note",     ["设置即时保存到配置文件","設定即時儲存到設定檔","Saved to config instantly","設定は即時保存","즉시 저장됨","Сохраняется сразу","Sofort gespeichert","Enregistré aussitôt","Se guarda al instante"]),
+    // 进程编辑表单
+    ("f.name",   ["名称","名稱","Name","名前","이름","Имя","Name","Nom","Nombre"]),
+    ("f.type",   ["类型","類型","Type","種類","유형","Тип","Typ","Type","Tipo"]),
+    ("f.observe",["系统观察名","系統觀察名","Observe name","観察名","관찰 이름","Имя наблюдения","Beobachtungsname","Nom d'observation","Nombre de observación"]),
+    ("f.cmdgrp", ["命令配置","命令設定","Commands","コマンド","명령","Команды","Befehle","Commandes","Comandos"]),
+    ("f.startcmd",["启动命令","啟動命令","Start command","開始コマンド","시작 명령","Команда запуска","Startbefehl","Commande de démarrage","Comando de inicio"]),
+    ("f.stopcmd",["停止命令","停止命令","Stop command","停止コマンド","중지 명령","Команда остановки","Stoppbefehl","Commande d'arrêt","Comando de detener"]),
+    ("f.checkcmd",["检查命令","檢查命令","Check command","チェックコマンド","검사 명령","Команда проверки","Prüfbefehl","Commande de contrôle","Comando de comprobar"]),
+    ("f.instcmd",["安装依赖","安裝依賴","Install deps","依存関係","의존성 설치","Зависимости","Abhängigkeiten","Dépendances","Dependencias"]),
+    ("f.detached",["启动命令为“点火即走”（如 systemctl start，执行后即返回）","啟動命令為「點火即走」（如 systemctl start，執行後即返回）","Start is fire-and-forget (e.g. systemctl start)","即時実行型（例: systemctl start）","즉시 실행형(예: systemctl start)","Разовая команда запуска (systemctl start)","Fire-and-Forget (z. B. systemctl start)","Exécution unique (ex. systemctl start)","Ejecución única (p. ej. systemctl start)"]),
+    ("f.workdir",["工作目录","工作目錄","Working directory","作業ディレクトリ","작업 디렉터리","Рабочий каталог","Arbeitsverzeichnis","Répertoire de travail","Directorio de trabajo"]),
+    ("f.env",     ["环境变量","環境變數","Environment","環境変数","환경 변수","Переменные среды","Umgebungsvariablen","Variables d'environnement","Variables de entorno"]),
+    ("f.addrs",   ["服务地址（Web 服务类型）","服務位址（Web 服務類型）","Service addresses","サービスアドレス","서비스 주소","Адреса сервисов","Dienstadressen","Adresses de service","Direcciones de servicio"]),
+    ("f.logs",    ["日志源","日誌來源","Log sources","ログソース","로그 소스","Источники журналов","Log-Quellen","Sources de journaux","Fuentes de registro"]),
+    ("f.editortitle",["进程配置","進程設定","Process config","プロセス設定","프로세스 설정","Конфигурация","Prozesskonfig","Configuration","Configuración"]),
+
     // 帮助页
     ("h.about",  ["关于黄瓜（cucumber）","關於黃瓜（cucumber）","About cucumber","cucumber について","cucumber 정보","О cucumber","Über cucumber","À propos","Acerca de"]),
     ("h.repo",   ["开源仓库","開源倉庫","Repository","リポジトリ","저장소","Репозиторий","Repository","Dépôt","Repositorio"]),

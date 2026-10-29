@@ -32,6 +32,11 @@ pub enum UiMsg {
     HealthCheck(bool, String),
     /// 发现新版本（版本号、Release 地址）（任务 7）
     UpdateAvailable(String, String),
+    /// 托盘事件（任务 5）
+    TrayShow,
+    TrayQuit,
+    /// 系统字体枚举完成（任务 2）
+    FontsLoaded(Vec<String>),
 }
 
 /// 进程列表行（UI 中间态）。
@@ -161,6 +166,9 @@ pub struct UiCtx {
     pub skill_dir: Signal<String>,
     // 帮助页快速诊断结果
     pub diag_result: Signal<String>,
+    // 字体选择（任务 2）
+    pub font_dialog: Signal<bool>,
+    pub font_list: Signal<Vec<String>>,
     // 语言与文案（任务 3）
     pub lang: Signal<i18n::Lang>,
     /// 语言下拉选中索引（dropdown 无回调，经 1s tick 桥接到 set_lang）
@@ -187,13 +195,14 @@ pub struct UiCtx {
     pub sub_disk: Signal<String>,
     pub sub_net: Signal<String>,
     pub sub_gpu: Signal<String>,
+    pub g_gpu: Signal<f32>,
     // 更新提醒（任务 7）
     pub update_show: Signal<bool>,
     pub update_ver: Signal<String>,
     pub update_url: Signal<String>,
     // 托盘统计文案（弹出时现取，任务 8）
     pub tray_stats: Signal<String>,
-    pub tray: Option<windui::platform::TrayHandle>,
+    pub tray: Option<std::sync::Arc<crate::platform::tray::TrayBridge>>,
 }
 
 /// 全部界面文案信号（语言切换时由 apply_lang 统一重写）。
@@ -239,6 +248,27 @@ pub struct Texts {
     pub u_skip: Signal<String>,
     pub c_cancel: Signal<String>,
     pub c_confirm: Signal<String>,
+    pub m_file: Signal<String>,
+    pub m_view: Signal<String>,
+    pub m_help: Signal<String>,
+    pub m_exit: Signal<String>,
+    pub u_browse: Signal<String>,
+    pub u_install: Signal<String>,
+    pub u_installing: Signal<String>,
+    pub f_name: Signal<String>,
+    pub f_type: Signal<String>,
+    pub f_observe: Signal<String>,
+    pub f_cmdgrp: Signal<String>,
+    pub f_startcmd: Signal<String>,
+    pub f_stopcmd: Signal<String>,
+    pub f_checkcmd: Signal<String>,
+    pub f_instcmd: Signal<String>,
+    pub f_detached: Signal<String>,
+    pub f_workdir: Signal<String>,
+    pub f_env: Signal<String>,
+    pub f_addrs: Signal<String>,
+    pub f_logs: Signal<String>,
+    pub f_editortitle: Signal<String>,
 }
 
 impl Texts {
@@ -285,11 +315,32 @@ impl Texts {
             u_skip: f("u.skip"),
             c_cancel: f("c.cancel"),
             c_confirm: f("c.confirm"),
+            m_file: f("m.file"),
+            m_view: f("m.view"),
+            m_help: f("m.help"),
+            m_exit: f("m.exit"),
+            u_browse: f("u.browse"),
+            u_install: f("u.install"),
+            u_installing: f("u.installing"),
+            f_name: f("f.name"),
+            f_type: f("f.type"),
+            f_observe: f("f.observe"),
+            f_cmdgrp: f("f.cmdgrp"),
+            f_startcmd: f("f.startcmd"),
+            f_stopcmd: f("f.stopcmd"),
+            f_checkcmd: f("f.checkcmd"),
+            f_instcmd: f("f.instcmd"),
+            f_detached: f("f.detached"),
+            f_workdir: f("f.workdir"),
+            f_env: f("f.env"),
+            f_addrs: f("f.addrs"),
+            f_logs: f("f.logs"),
+            f_editortitle: f("f.editortitle"),
         }
     }
 
     fn apply(&self, lang: i18n::Lang) {
-        let pairs: [(&Signal<String>, &'static str); 40] = [
+        let pairs: Vec<(&Signal<String>, &'static str)> = vec![
             (&self.nav_dashboard, "nav.dashboard"),
             (&self.nav_processes, "nav.processes"),
             (&self.nav_services, "nav.services"),
@@ -330,6 +381,27 @@ impl Texts {
             (&self.u_skip, "u.skip"),
             (&self.c_cancel, "c.cancel"),
             (&self.c_confirm, "c.confirm"),
+            (&self.m_file, "m.file"),
+            (&self.m_view, "m.view"),
+            (&self.m_help, "m.help"),
+            (&self.m_exit, "m.exit"),
+            (&self.u_browse, "u.browse"),
+            (&self.u_install, "u.install"),
+            (&self.u_installing, "u.installing"),
+            (&self.f_name, "f.name"),
+            (&self.f_type, "f.type"),
+            (&self.f_observe, "f.observe"),
+            (&self.f_cmdgrp, "f.cmdgrp"),
+            (&self.f_startcmd, "f.startcmd"),
+            (&self.f_stopcmd, "f.stopcmd"),
+            (&self.f_checkcmd, "f.checkcmd"),
+            (&self.f_instcmd, "f.instcmd"),
+            (&self.f_detached, "f.detached"),
+            (&self.f_workdir, "f.workdir"),
+            (&self.f_env, "f.env"),
+            (&self.f_addrs, "f.addrs"),
+            (&self.f_logs, "f.logs"),
+            (&self.f_editortitle, "f.editortitle"),
         ];
         for (sig, key) in pairs {
             sig.set(i18n::tr(lang, key));
@@ -385,6 +457,7 @@ impl UiCtx {
             sub_disk: signal("—".into()),
             sub_net: signal("—".into()),
             sub_gpu: signal("N/A".into()),
+            g_gpu: signal(0.0),
             update_show: signal(false),
             update_ver: signal(String::new()),
             update_url: signal(String::new()),
@@ -427,6 +500,8 @@ impl UiCtx {
             token_show: signal(false),
             skill_dir: signal(String::new()),
             diag_result: signal("尚未检测".into()),
+            font_dialog: signal(false),
+            font_list: signal(Vec::new()),
         }
     }
 
@@ -549,8 +624,14 @@ impl UiCtx {
                 self.sub_disk.set("—".into());
             }
             match sn.gpu_percent {
-                Some(g) => self.sub_gpu.set(format!("{g:.0}%")),
-                None => self.sub_gpu.set("N/A".into()),
+                Some(g) => {
+                    self.g_gpu.set(g / 100.0);
+                    self.sub_gpu.set(format!("{g:.0}%"));
+                }
+                None => {
+                    self.g_gpu.set(0.0);
+                    self.sub_gpu.set("N/A".into());
+                }
             }
             self.sub_net.set(format!(
                 "↓{}/s ↑{}/s",
