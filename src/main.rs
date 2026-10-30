@@ -60,7 +60,7 @@ fn attach_console_for_stdio() {
             disp: u32,
             flags: u32,
             tmpl: usize,
-        ) -> *mut core::ffi::c_void;
+        ) -> *mut std::ffi::c_void;
     }
     #[link(name = "msvcrt")]
     unsafe extern "system" {
