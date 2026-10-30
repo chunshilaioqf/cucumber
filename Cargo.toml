@@ -1,6 +1,6 @@
 [package]
 name = "cucumber"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2021"
 description = "黄瓜 · 跨平台本地进程与服务统一管理工具（GUI + 本地 API/WS/MCP）"
 license = "MIT"

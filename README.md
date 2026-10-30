@@ -6,7 +6,7 @@
 
 | 模块 | 能力 |
 |---|---|
-| 仪表盘 | 圆环仪表：CPU/内存/磁盘/网络/GPU（macOS ioreg）实时（默认 1s）分色卡片 + 统计 |
+| 仪表盘 | 圆环仪表：CPU/内存/磁盘/网络/GPU（macOS ioreg · Windows WMI 计数器 · Linux sysfs/nvidia-smi）实时（默认 1s） |
 | 进程管理 | 配置命令模板（启动/停止/检查/装依赖）、长驻子进程 PID 跟踪、点火即走模式、系统观察模式（按进程名） |
 | Web 服务 | 地址列表、一键复制 URL、调起系统浏览器 |
 | 日志查看 | 多日志源（文件/命令）、四种行格式解析（json_lines/logfmt/bracket/plain）、级别/标签/关键词过滤、分页、级别着色与关键词高亮、跟随模式 |
@@ -25,8 +25,8 @@
 |---|---|---|---|
 | macOS 12+ | Apple Silicon（M1/M2/M3/M4） | `cucumber-x.y.z-macos-universal.dmg` | 双击挂载 → 把「黄瓜」拖入 Applications → 启动台打开 |
 | macOS 12+ | Intel | `cucumber-x.y.z-macos-universal.dmg`（同包双架构） | 同上 |
-| Windows 10+ | x64（主流 PC） | `cucumber-x.y.z-windows-x86_64.zip` | 解压 → 双击 `cucumber.exe`（含图标） |
-| Windows 10+ | ARM64（Surface 等） | `cucumber-x.y.z-windows-arm64.zip` | 同上 |
+| Windows 10+ | x64（主流 PC） | `cucumber-x.y.z-windows-x86_64-setup.exe`（安装向导，推荐） | 双击安装 → 开始菜单/桌面启动；zip 便携版亦可 |
+| Windows 10+ | ARM64（Surface 等） | `cucumber-x.y.z-windows-arm64-setup.exe` | 同上 |
 | Linux | x86_64 | `cucumber-x.y.z-linux-x86_64.tar.gz` | `tar xf` 后运行 `./cucumber` |
 | Linux | ARM64 | `cucumber-x.y.z-linux-aarch64.tar.gz` | 同上 |
 

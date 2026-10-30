@@ -1,9 +1,16 @@
 //! 黄瓜（cucumber）入口：CLI 解析与运行时装配。
+//! Windows 发布版使用 GUI 子系统（无控制台黑窗）；`--mcp` 模式重附父控制台。
 //!
 //! - （无参数）：启动 GUI
 //! - `--smoke-test [秒]`：GUI 启动 N 秒后自动退出（CI 冒烟）
 //! - `--mcp`：MCP stdio 模式（供 AI 宿主拉起，FR-API-03）
 //! - `--version` / `-V`：版本信息
+
+// Windows 发布版不创建控制台窗口（GUI 子系统；任务 2）
+#![cfg_attr(
+    all(target_os = "windows", not(debug_assertions)),
+    windows_subsystem = "windows"
+)]
 
 mod api;
 mod core;
@@ -32,11 +39,63 @@ fn main() {
         return;
     }
     if args.iter().any(|a| a == "--mcp") {
+        attach_console_for_stdio();
         std::process::exit(mcp_main());
     }
     let smoke = smoke_secs_from(&args);
     gui_main(smoke);
 }
+
+/// `--mcp` 模式：GUI 子系统进程重附父控制台，恢复 stdio 行协议（任务 2）。
+#[cfg(all(target_os = "windows", not(debug_assertions)))]
+fn attach_console_for_stdio() {
+    #[link(name = "kernel32")]
+    unsafe extern "system" {
+        fn AttachConsole(pid: usize) -> i32;
+        fn CreateFileW(
+            name: *const u16,
+            access: u32,
+            share: u32,
+            sa: *const u8,
+            disp: u32,
+            flags: u32,
+            tmpl: usize,
+        ) -> *mut core::ffi::c_void;
+    }
+    #[link(name = "msvcrt")]
+    unsafe extern "system" {
+        fn _open_osfhandle(osfhandle: isize, flags: i32) -> i32;
+        fn _dup2(src: i32, dst: i32) -> i32;
+    }
+    const ATTACH_PARENT_PROCESS: usize = usize::MAX;
+    const GENERIC_WRITE: u32 = 0x4000_0000;
+    const FILE_SHARE_ALL: u32 = 0x7;
+    const OPEN_EXISTING: u32 = 3;
+    unsafe {
+        if AttachConsole(ATTACH_PARENT_PROCESS) != 0 {
+            let name: Vec<u16> = "CONOUT$\0".encode_utf16().collect();
+            let h = CreateFileW(
+                name.as_ptr(),
+                GENERIC_WRITE,
+                FILE_SHARE_ALL,
+                std::ptr::null(),
+                OPEN_EXISTING,
+                0,
+                0,
+            );
+            if !h.is_null() && h as usize != usize::MAX {
+                let fd = _open_osfhandle(h as isize, 0);
+                if fd != -1 {
+                    _dup2(fd, 1);
+                    _dup2(fd, 2);
+                }
+            }
+        }
+    }
+}
+
+#[cfg(not(all(target_os = "windows", not(debug_assertions))))]
+fn attach_console_for_stdio() {}
 
 /// 解析 `--smoke-test [秒]`（缺省 5 秒）。
 fn smoke_secs_from(args: &[String]) -> Option<u64> {

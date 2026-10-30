@@ -16,8 +16,9 @@ pub fn pick_asset_name(ver: &str) -> Option<String> {
     let arch = std::env::consts::ARCH;
     Some(match (os, arch) {
         ("macos", _) => format!("cucumber-{ver}-macos-universal.dmg"),
-        ("windows", "x86_64") => format!("cucumber-{ver}-windows-x86_64.zip"),
-        ("windows", _) => format!("cucumber-{ver}-windows-arm64.zip"),
+        // Windows 优先安装包（Inno Setup，任务 3）
+        ("windows", "x86_64") => format!("cucumber-{ver}-windows-x86_64-setup.exe"),
+        ("windows", _) => format!("cucumber-{ver}-windows-arm64-setup.exe"),
         ("linux", "x86_64") => format!("cucumber-{ver}-linux-x86_64.tar.gz"),
         ("linux", _) => format!("cucumber-{ver}-linux-aarch64.tar.gz"),
         _ => return None,
@@ -106,27 +107,25 @@ rm -f "$0"
     ))
 }
 
-/// Windows：脚本等待退出 → 替换 → 重启。
-fn install_windows(zip: &std::path::Path, ver: &str) -> Result<String, String> {
-    let zip = zip.display();
-    let cur = std::env::current_exe().map_err(|e| e.to_string())?;
-    let cur = cur.display();
-    let script = format!(
-        r#"
-timeout /t 2 /nobreak >nul
-powershell -NoProfile -Command "Expand-Archive -Force '{zip}' "$env:TEMP\cu-x{ver}""
-move /y "$env:TEMP\cu-x{ver}\cucumber.exe" "{cur}.new" >nul
-del "{cur}.old" >nul 2>&1
-rename "{cur}" cucumber.exe.old
-rename "{cur}.new" cucumber.exe
-start "" "{cur}"
-del "%TEMP%\cucumber-update.c-cmd" >nul 2>&1
-"#
-    );
-    let script_path = std::env::temp_dir().join("cucumber-update.c-cmd");
-    std::fs::write(&script_path, script).map_err(|e| e.to_string())?;
-    spawn_detached(&script_path)?;
-    Ok(format!("v{ver} 安装中：应用将自动重启"))
+/// Windows（任务 3）：资产为 Inno Setup 安装包——启动静默安装（/VERYSILENT）。
+fn install_windows(setup: &std::path::Path, _ver: &str) -> Result<String, String> {
+    let _ = std::process::Command::new("cmd")
+        .args([
+            "/C",
+            "start",
+            "",
+            "/wait",
+            &setup.to_string_lossy(),
+            "/VERYSILENT",
+            "/SUPPRESSMSGBOXES",
+            "/NORESTART",
+        ])
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok("安装包已启动（静默模式）：新版本将自动完成安装与启动".into())
 }
 
 fn make_executable(p: &std::path::Path) {

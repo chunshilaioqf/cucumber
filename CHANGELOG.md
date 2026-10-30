@@ -3,6 +3,15 @@
 本项目的所有显著变更都记录在本文件中。
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.4.1] - 2026-10-29
+
+### 修复 / 新增
+
+- **Windows 无控制台黑窗（任务 2，ADR-17）**：发布版启用 GUI 子系统（`windows_subsystem = "windows"`）——普通应用般仅一个窗口；`--mcp` 模式自动重附父控制台（`AttachConsole` + CRT `_dup2` 句柄重绑），stdio 行协议不受影响。
+- **Windows 安装包（任务 3）**：CI 新增 Inno Setup 步骤，产出 `cucumber-<ver>-windows-<arch>-setup.exe`——安装向导（中/英双语）、开始菜单与桌面快捷方式、可选开机自启、卸载器；便携 zip 同步保留；应用内更新优先选择安装包并静默安装（/VERYSILENT）。
+- **Windows/Linux GPU 使用率（任务 4，ADR-16）**：Windows 经 WMI `GPU Engine(*engtype_3D)\Utilization Percentage` 性能计数器汇总（与任务管理器同源，NVIDIA/AMD/Intel 全厂商）；Linux 经 sysfs `gpu_busy_percent`（AMD/Intel）或 `nvidia-smi`（NVIDIA）。开源库取舍：`nvml-wrapper` 等仅 NVIDIA 单厂商，选择零依赖原生数据源方案。
+- 57 项测试全过。
+
 ## [0.4.0] - 2026-10-29
 
 ### 新增 / 修复（七项任务 + 图标一致性）

@@ -99,6 +99,17 @@ jobs:
           Copy-Item "LICENSE*" $dir -ErrorAction SilentlyContinue
           Compress-Archive -Path "$dir/*" -DestinationPath "dist/$env:BIN_NAME-$ver-${{ matrix.label }}.zip" -Force
 
+      - name: Build Windows installer (Inno Setup)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ver = "${{ github.ref_name }}".TrimStart("v")
+          choco install -y innosetup --no-progress | Out-Null
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { $iscc = "${env:ProgramFiles}\Inno Setup 6\ISCC.exe" }
+          & $iscc /DVer="$ver" "/DArchLabel=${{ matrix.label }}" "/DBinDir=target/${{ matrix.target }}/release" installer/cucumber.iss
+          Get-ChildItem dist/*setup.exe | ForEach-Object { Write-Host "installer: $($_.Name)" }
+
       - name: Package (Linux)
         if: runner.os == 'Linux'
         run: |
