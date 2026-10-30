@@ -32,8 +32,7 @@ PrivilegesRequired=lowest
 ShowLanguageDialog=yes
 
 [Languages]
-Name: "zh"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
-Name: "en"; MessagesFile: "compiler:Default.isl"
+Name: "zh"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
