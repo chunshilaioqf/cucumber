@@ -3,8 +3,8 @@
 ;
 ; 命令行 /D 传入：Ver（版本） ArchLabel（x86_64/arm64） BinDir（exe 目录）
 
-#ifndef Ver
-#define Ver "0.0.0"
+#ifndef AppVer
+#define AppVer "0.0.0"
 #endif
 #ifndef ArchLabel
 #define ArchLabel "x86_64"
@@ -16,14 +16,14 @@
 [Setup]
 AppId={{8E1C4B2A-9F3D-4C7B-A6E5-CUCUMBER42MGR}
 AppName=黄瓜 cucumber
-AppVersion={#Ver}
+AppVersion={#AppVer}
 AppPublisher=chunshilaioqf
 AppPublisherURL=https://github.com/chunshilaioqf/cucumber
 AppSupportURL=https://github.com/chunshilaioqf/cucumber/issues
 DefaultDirName={autopf}\Cucumber
 DefaultGroupName=黄瓜 cucumber
-UninstallDisplayName=黄瓜 cucumber {#Ver}
-OutputBaseFilename=cucumber-{#Ver}-windows-{#ArchLabel}-setup
+UninstallDisplayName=黄瓜 cucumber {#AppVer}
+OutputBaseFilename=cucumber-{#AppVer}-windows-{#ArchLabel}-setup
 OutputDir=dist
 Compression=lzma2/max
 SolidCompression=yes
