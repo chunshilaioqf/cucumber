@@ -236,4 +236,5 @@ jobs:
             dist/*.zip
             dist/*.tar.gz
             dist/*.dmg
+            dist/*setup.exe
             dist/SHA256SUMS
