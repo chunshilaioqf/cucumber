@@ -195,7 +195,7 @@ jobs:
       - name: Generate SHA256SUMS
         run: |
           cd dist
-          sha256sum *.zip *.tar.gz *.dmg > SHA256SUMS 2>/dev/null || true
+          sha256sum *.zip *.tar.gz *.dmg *setup.exe > SHA256SUMS 2>/dev/null || true
           cat SHA256SUMS
 
       - name: Compose release body (按系统与芯片分组的下载指引)
