@@ -57,11 +57,11 @@ jobs:
             target: aarch64-unknown-linux-gnu
             ext: ""
           - label: macos-aarch64
-            os: macos-14
+            os: macos-15
             target: aarch64-apple-darwin
             ext: ""
           - label: macos-x86_64
-            os: macos-14
+            os: macos-15
             target: x86_64-apple-darwin
             ext: ""
     steps:
@@ -145,7 +145,7 @@ jobs:
   macos-universal:
     name: Build (macos-universal DMG)
     needs: build
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
 
