@@ -3,6 +3,13 @@
 本项目的所有显著变更都记录在本文件中。
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.4.2] - 2026-10-31
+
+### 修复
+
+- **Release 资产上传完整性**：Publish 上传列表补 `dist/*setup.exe`——v0.4.1 曾因该列表遗漏导致 Windows 安装包未随发布自动上传（后经手工补传）。本版起 Inno Setup 安装包由 CI 原生上传，不再依赖人工干预。
+- 本版内容与 0.4.1 功能一致（Windows GUI 子系统无黑窗 / Inno Setup 安装包 / Win·Linux GPU），为干净的全流程重发。
+
 ## [0.4.1] - 2026-10-29
 
 ### 修复 / 新增
