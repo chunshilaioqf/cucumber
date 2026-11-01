@@ -8,7 +8,7 @@ use std::path::Path;
 
 fn main() {
     let svg = include_bytes!("../assets/logo.svg");
-    for size in [64u32, 128, 256, 512, 1024] {
+    for size in [48u32, 64, 128, 256, 512, 1024] {
         let png = render(svg, size);
         let out = Path::new("assets/render").join(format!("icon_{size}.png"));
         std::fs::create_dir_all("assets/render").unwrap();
