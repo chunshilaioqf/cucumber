@@ -3,6 +3,14 @@
 本项目的所有显著变更都记录在本文件中。
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.4.3] - 2026-10-31
+
+### 修复（严重）：Windows 启动后不停弹出 curl / powershell 控制台窗口
+
+**根因**：GUI 子系统进程在 Windows 上启动控制台程序时，**会为每个子进程创建新控制台窗口**。GPU 采集（每秒一次 powershell）、更新检查（curl）、字体枚举（reg）等子进程调用导致窗口反复弹出，无法正常使用。
+
+**修复（ADR-18）**：新增 `platform/no_window` 统一加 `CREATE_NO_WINDOW`（0x08000000）标志，覆盖全部子进程启动点：GPU 采集（powershell/nvidia-smi）、更新检查与下载（curl ×3）、应用内安装（cmd）、字体枚举（reg/fc-list）、停止命令（taskkill）、打开浏览器（cmd start）、日志读取命令。用户进程执行（start_command）此前已带该标志。目标达成：**只有一个干净的 GUI 窗口**。
+
 ## [0.4.2] - 2026-10-31
 
 ### 修复

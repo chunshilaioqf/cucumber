@@ -19,7 +19,9 @@ pub async fn open_url(url: &str) -> Result<(), String> {
     #[cfg(all(unix, not(target_os = "macos")))]
     let (program, args): (&str, Vec<String>) = ("xdg-open", vec![url.to_string()]);
 
-    let status = tokio::process::Command::new(program)
+    let mut cmd = tokio::process::Command::new(program);
+    super::no_window::NoWindow::no_window(&mut cmd);
+    let status = cmd
         .args(&args)
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())

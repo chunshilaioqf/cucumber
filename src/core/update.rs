@@ -30,7 +30,9 @@ pub fn parse_semver(v: &str) -> Option<(u64, u64, u64)> {
 /// 因此这里用系统 curl 以零依赖完成 HTTPS 请求；无 curl 环境返回 UpToDate 容错）。
 pub async fn check_latest() -> UpdateCheck {
     let cur = parse_semver(env!("APP_VERSION")).unwrap_or((0, 0, 0));
-    let body = match tokio::process::Command::new("curl")
+    let mut cmd = tokio::process::Command::new("curl");
+    crate::platform::no_window::NoWindow::no_window(&mut cmd);
+    let body = match cmd
         .args([
             "-s",
             "--max-time",

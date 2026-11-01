@@ -15,10 +15,9 @@ pub fn list_families() -> Vec<String> {
 }
 
 fn collect_fontconfig(set: &mut std::collections::BTreeSet<String>) {
-    if let Ok(out) = std::process::Command::new("fc-list")
-        .args(["--format", "%{family[0]}\\n"])
-        .output()
-    {
+    let mut fc = std::process::Command::new("fc-list");
+    super::no_window::NoWindow::no_window(&mut fc);
+    if let Ok(out) = fc.args(["--format", "%{family[0]}\\n"]).output() {
         if out.status.success() {
             for line in String::from_utf8_lossy(&out.stdout).lines() {
                 let f = line.trim();
@@ -35,10 +34,9 @@ fn collect_windows(set: &mut std::collections::BTreeSet<String>) {
         "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts",
         "HKCU\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts",
     ] {
-        if let Ok(out) = std::process::Command::new("reg")
-            .args(["query", root])
-            .output()
-        {
+        let mut reg = std::process::Command::new("reg");
+        super::no_window::NoWindow::no_window(&mut reg);
+        if let Ok(out) = reg.args(["query", root]).output() {
             if !out.status.success() {
                 continue;
             }

@@ -26,8 +26,9 @@ async fn run(line: &str) -> bool {
     let Some((program, args)) = parts.split_first() else {
         return false;
     };
-    tokio::process::Command::new(program)
-        .args(args)
+    let mut cmd = tokio::process::Command::new(program);
+    super::no_window::NoWindow::no_window(&mut cmd);
+    cmd.args(args)
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
         .status()

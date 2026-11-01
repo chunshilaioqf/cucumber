@@ -92,7 +92,9 @@ pub fn parse_gpu_counter(text: &str) -> Option<f32> {
 
 #[cfg(target_os = "windows")]
 fn gpu_windows() -> Option<f32> {
-    let out = std::process::Command::new("powershell")
+    let mut cmd = std::process::Command::new("powershell");
+    crate::platform::no_window::NoWindow::no_window(&mut cmd);
+    let out = cmd
         .args([
             "-NoProfile",
             "-Command",
@@ -120,7 +122,9 @@ fn gpu_linux() -> Option<f32> {
         }
     }
     // NVIDIA：nvidia-smi（存在时）
-    if let Ok(out) = std::process::Command::new("nvidia-smi")
+    let mut cmd = std::process::Command::new("nvidia-smi");
+    crate::platform::no_window::NoWindow::no_window(&mut cmd);
+    if let Ok(out) = cmd
         .args([
             "--query-gpu=utilization.gpu",
             "--format=csv,noheader,nounits",

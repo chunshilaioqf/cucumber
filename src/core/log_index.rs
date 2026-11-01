@@ -217,7 +217,9 @@ fn run_command_lines(cmd: &str) -> Result<Vec<String>, String> {
     let Some((program, args)) = parts.split_first() else {
         return Err("空命令".into());
     };
-    let out = Command::new(program)
+    let mut cmd = Command::new(program);
+    crate::platform::no_window::NoWindow::no_window(&mut cmd);
+    let out = cmd
         .args(args)
         .stdout(Stdio::piped())
         .stderr(Stdio::null())

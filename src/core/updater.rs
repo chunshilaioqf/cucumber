@@ -33,11 +33,9 @@ pub fn asset_url(tag: &str, asset: &str) -> String {
 /// 校验某 tag 是否含目标资产（避免下到 404 页面）。
 pub async fn asset_exists(tag: &str, asset: &str) -> bool {
     let url = format!("https://api.github.com/repos/chunshilaioqf/cucumber/releases/tags/{tag}");
-    let Ok(out) = tokio::process::Command::new("curl")
-        .args(["-s", "--max-time", "15", &url])
-        .output()
-        .await
-    else {
+    let mut cmd = tokio::process::Command::new("curl");
+    crate::platform::no_window::NoWindow::no_window(&mut cmd);
+    let Ok(out) = cmd.args(["-s", "--max-time", "15", &url]).output().await else {
         return false;
     };
     let Ok(v) = serde_json::from_str::<Value>(&String::from_utf8_lossy(&out.stdout)) else {
@@ -59,7 +57,9 @@ pub async fn download_and_install(tag: &str, url: &str) -> Result<String, String
     let file_name = url.rsplit('/').next().unwrap_or("package");
     let dest = dest_dir.join(file_name);
 
-    let st = tokio::process::Command::new("curl")
+    let mut cmd = tokio::process::Command::new("curl");
+    crate::platform::no_window::NoWindow::no_window(&mut cmd);
+    let st = cmd
         .args(["-sL", "--max-time", "600", "-o"])
         .arg(&dest)
         .arg(url)
@@ -150,8 +150,9 @@ fn spawn_detached(path: &std::path::Path) -> Result<(), String> {
     }
     #[cfg(windows)]
     {
-        std::process::Command::new("cmd")
-            .args(["/C", &path.to_string_lossy()])
+        let mut cmd = std::process::Command::new("cmd");
+        crate::platform::no_window::NoWindow::no_window(&mut cmd);
+        cmd.args(["/C", &path.to_string_lossy()])
             .stdin(std::process::Stdio::null())
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
