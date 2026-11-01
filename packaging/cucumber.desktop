@@ -1,0 +1,17 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=黄瓜 cucumber
+Name[zh_CN]=黄瓜
+Name[zh_TW]=黃瓜
+GenericName=进程与服务管理
+GenericName[zh_CN]=进程与服务管理
+Comment=本地进程与服务统一管理：仪表盘、命令执行、日志、对外 API/MCP
+Comment[zh_CN]=本地进程与服务统一管理：仪表盘、命令执行、日志、对外 API/MCP
+Exec=cucumber
+Icon=cucumber
+Terminal=false
+Categories=System;Utility;Monitor;
+StartupWMClass=cucumber
+Keywords=process;service;monitor;manager;task;
+StartupNotify=true

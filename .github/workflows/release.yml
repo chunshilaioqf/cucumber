@@ -124,6 +124,57 @@ jobs:
           tar -czf "dist/${BIN_NAME}-${ver}-${{ matrix.label }}.tar.gz" \
             -C "dist/${BIN_NAME}-${ver}-${{ matrix.label }}" .
 
+      - name: Package DEB/RPM (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          ver="${GITHUB_REF_NAME#v}"
+          bin="target/${{ matrix.target }}/release/${BIN_NAME}"
+          [ -f "$bin" ] || bin="target/release/${BIN_NAME}"
+          deb_arch=$([ "${{ matrix.label }}" = "linux-x86_64" ] && echo amd64 || echo arm64)
+          rpm_arch=$([ "${{ matrix.label }}" = "linux-x86_64" ] && echo x86_64 || echo aarch64)
+
+          # ---- DEB ----
+          pkg="pkgroot"
+          rm -rf "$pkg"
+          install -D -m 0755 "$bin" "$pkg/usr/bin/cucumber"
+          install -D -m 0644 packaging/cucumber.desktop "$pkg/usr/share/applications/cucumber.desktop"
+          for size in 48 128 256 512; do
+            install -D -m 0644 "assets/render/icon_${size}.png" \
+              "$pkg/usr/share/icons/hicolor/${size}x${size}/apps/cucumber.png"
+          done
+          mkdir -p "$pkg/DEBIAN"
+          cat > "$pkg/DEBIAN/control" <<CTL
+          Package: cucumber
+          Version: ${ver}
+          Section: utils
+          Priority: optional
+          Architecture: ${deb_arch}
+          Maintainer: chunshilaioqf <chunshilaioqf@users.noreply.github.com>
+          Description: 进程与服务统一管理工具（黄瓜）
+           仪表盘（CPU/GPU/内存/磁盘/网络）、进程 CRUD 与命令执行、
+           日志四格式过滤分页、本地 HTTP/WS API 与 MCP、系统托盘、应用内更新。
+          Homepage: https://github.com/chunshilaioqf/cucumber
+          CTL
+          sed -i 's/^          //' "$pkg/DEBIAN/control"
+          dpkg-deb --build --root-owner-group "$pkg" "dist/${BIN_NAME}_${ver}_${deb_arch}.deb"
+
+          # ---- RPM ----
+          sudo apt-get update -qq && sudo apt-get install -y -qq rpm >/dev/null
+          rpmbuild -bb packaging/cucumber.spec \
+            --define "ver ${ver}" \
+            --define "arch ${rpm_arch}" \
+            --define "bin $(readlink -f "$bin")" \
+            --define "desktop $(readlink -f packaging/cucumber.desktop)" \
+            --define "icons $(readlink -f assets/render)" \
+            --buildroot "$(pwd)/rpmroot" \
+            --define "_topdir $(pwd)/rpmbuild" \
+            --define "_rpmdir $(pwd)/dist" || true
+          mv dist/${rpm_arch}/*.rpm dist/ 2>/dev/null || true
+          rm -rf dist/${rpm_arch}
+          # rpmbuild 文件名为 name-ver-1.arch.rpm
+          ls dist/*.rpm || (echo "RPM 构建失败" && exit 1)
+
       - name: Package (macOS)
         if: runner.os == 'macOS'
         run: |
@@ -195,7 +246,7 @@ jobs:
       - name: Generate SHA256SUMS
         run: |
           cd dist
-          sha256sum *.zip *.tar.gz *.dmg *setup.exe > SHA256SUMS 2>/dev/null || true
+          sha256sum *.zip *.tar.gz *.dmg *setup.exe *.deb *.rpm > SHA256SUMS 2>/dev/null || true
           cat SHA256SUMS
 
       - name: Compose release body (按系统与芯片分组的下载指引)
@@ -211,10 +262,10 @@ jobs:
           |---|---|---|---|
           | macOS 12+ | Apple Silicon（M1/M2/M3/M4） | \`cucumber-${ver}-macos-universal.dmg\` | 双击挂载 → 把「黄瓜」拖入 Applications → 启动台打开 |
           | macOS 12+ | Intel | \`cucumber-${ver}-macos-universal.dmg\`（同包双架构） | 同上 |
-          | Windows 10+ | x64（主流 PC） | \`cucumber-${ver}-windows-x86_64.zip\` | 解压 → 双击 \`cucumber.exe\` |
-          | Windows 10+ | ARM64（Surface 等） | \`cucumber-${ver}-windows-arm64.zip\` | 同上 |
-          | Linux | x86_64 | \`cucumber-${ver}-linux-x86_64.tar.gz\` | \`tar xf\` 后运行 \`./cucumber\`（X11） |
-          | Linux | ARM64 | \`cucumber-${ver}-linux-aarch64.tar.gz\` | 同上 |
+          | Windows 10+ | x64（主流 PC） | \`cucumber-${ver}-windows-x86_64-setup.exe\`（推荐安装版） | 双击安装 → 开始菜单/桌面启动；\`*.zip\` 为便携版 |
+          | Windows 10+ | ARM64（Surface 等） | \`cucumber-${ver}-windows-arm64-setup.exe\` | 同上 |
+          | Linux | x64 | \`cucumber_${ver}_amd64.deb\`（推荐）或 \`cucumber-${ver}-1.x86_64.rpm\` | 安装后应用菜单/启动器出现「黄瓜 cucumber」图标，点击即开 GUI；\`*.tar.gz\` 为免安装版 |
+          | Linux | ARM64 | \`cucumber_${ver}_arm64.deb\` 或 \`cucumber-${ver}-1.aarch64.rpm\` | 同上 |
 
           > macOS 首次运行如被 Gatekeeper 拦截：右键 App →「打开」，或终端执行
           > \`xattr -d com.apple.quarantine /Applications/Cucumber.app\`
@@ -237,4 +288,6 @@ jobs:
             dist/*.tar.gz
             dist/*.dmg
             dist/*setup.exe
+            dist/*.deb
+            dist/*.rpm
             dist/SHA256SUMS

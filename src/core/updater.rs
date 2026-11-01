@@ -19,8 +19,21 @@ pub fn pick_asset_name(ver: &str) -> Option<String> {
         // Windows 优先安装包（Inno Setup，任务 3）
         ("windows", "x86_64") => format!("cucumber-{ver}-windows-x86_64-setup.exe"),
         ("windows", _) => format!("cucumber-{ver}-windows-arm64-setup.exe"),
-        ("linux", "x86_64") => format!("cucumber-{ver}-linux-x86_64.tar.gz"),
-        ("linux", _) => format!("cucumber-{ver}-linux-aarch64.tar.gz"),
+        // Linux 优先发行包（deb/rpm，0.4.4）
+        ("linux", "x86_64") => {
+            if installed_as_rpm() {
+                format!("cucumber-{ver}-1.x86_64.rpm")
+            } else {
+                format!("cucumber_{ver}_amd64.deb")
+            }
+        }
+        ("linux", _) => {
+            if installed_as_rpm() {
+                format!("cucumber-{ver}-1.aarch64.rpm")
+            } else {
+                format!("cucumber_{ver}_arm64.deb")
+            }
+        }
         _ => return None,
     })
 }
@@ -77,9 +90,7 @@ pub async fn download_and_install(tag: &str, url: &str) -> Result<String, String
     match std::env::consts::OS {
         "macos" => install_macos(&dest, ver),
         "windows" => install_windows(&dest, ver),
-        _ => Ok(format!(
-            "已下载 {file_name} 到系统临时目录并解压准备完成；Linux 无统一安装位置，请按 README 手动替换"
-        )),
+        _ => install_linux(&dest),
     }
 }
 
@@ -128,6 +139,66 @@ fn install_windows(setup: &std::path::Path, _ver: &str) -> Result<String, String
     Ok("安装包已启动（静默模式）：新版本将自动完成安装与启动".into())
 }
 
+/// 是否以 RPM 安装（决定 Linux 更新资产形态）。
+fn installed_as_rpm() -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        std::process::Command::new("rpm")
+            .args(["-q", "cucumber"])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false)
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        false
+    }
+}
+
+/// Linux（0.4.4）：优先 pkexec 调用系统包管理器安装；无授权工具时提示手动安装路径。
+fn install_linux(pkg: &std::path::Path) -> Result<String, String> {
+    #[cfg(target_os = "linux")]
+    {
+        let is_rpm = pkg.extension().and_then(|e| e.to_str()) == Some("rpm");
+        let (tool, args): (&str, Vec<String>) = if is_rpm {
+            (
+                "pkexec",
+                vec![
+                    "rpm".into(),
+                    "-Uvh".into(),
+                    "--oldpackage".into(),
+                    pkg.display().to_string(),
+                ],
+            )
+        } else {
+            (
+                "pkexec",
+                vec!["dpkg".into(), "-i".into(), pkg.display().to_string()],
+            )
+        };
+        let mut cmd = std::process::Command::new(tool);
+        crate::platform::no_window::NoWindow::no_window(&mut cmd);
+        if let Ok(st) = cmd.args(&args).status() {
+            if st.success() {
+                return Ok("更新已通过系统包管理器安装完成，重启应用生效".into());
+            }
+        }
+        Ok(format!(
+            "包已下载到 {}：双击安装，或终端执行 sudo {} {}",
+            pkg.display(),
+            if is_rpm { "rpm -Uvh" } else { "dpkg -i" },
+            pkg.display()
+        ))
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = pkg;
+        Ok(String::new())
+    }
+}
+
 fn make_executable(p: &std::path::Path) {
     #[cfg(unix)]
     {
@@ -168,10 +239,17 @@ mod tests {
 
     #[test]
     fn asset_names_by_platform() {
-        let name = pick_asset_name("0.4.0").unwrap();
-        assert!(name.starts_with("cucumber-0.4.0-"));
+        let name = pick_asset_name("0.4.4").unwrap();
+        assert!(name.starts_with("cucumber"));
+        assert!(name.contains("0.4.4"));
         if cfg!(target_os = "macos") {
             assert!(name.ends_with(".dmg"));
+        }
+        if cfg!(target_os = "windows") {
+            assert!(name.ends_with(".exe"));
+        }
+        if cfg!(target_os = "linux") {
+            assert!(name.ends_with(".deb") || name.ends_with(".rpm"));
         }
     }
 

@@ -3,6 +3,17 @@
 本项目的所有显著变更都记录在本文件中。
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.4.4] - 2026-10-31
+
+### 新增：Linux 发行包（deb / rpm / 便携 tar.gz 三形态）
+
+- **DEB**（`cucumber_<ver>_{amd64,arm64}.deb`）：dpkg-deb 构建，含 `/usr/bin/cucumber`、`.desktop` 启动器（中英文条目）、hicolor 48/128/256/512 图标——安装后应用菜单出现「黄瓜 cucumber」，点击即开干净 GUI 窗口（`Terminal=false`）。
+- **RPM**（`cucumber-<ver>-1.{x86_64,aarch64}.rpm`）：rpmbuild spec 构建，同样含二进制 + 启动器 + 图标。
+- **便携 tar.gz** 照旧保留（免安装）。
+- CI：Linux x86_64（ubuntu-22.04）与 ARM64（ubuntu-24.04-arm 原生 runner）均产出三形态；Release 上传列表与 SHA256SUMS 覆盖 deb/rpm。
+- **应用内更新（Linux）**：自动检测安装形态（rpm -q / dpkg）选择对应包资产；优先 `pkexec` 调用系统包管理器静默安装，无授权工具时提示双击或终端命令。
+- Release 下载表更新（Windows 推荐安装版 setup.exe；Linux 推荐 deb/rpm）。
+
 ## [0.4.3] - 2026-10-31
 
 ### 修复（严重）：Windows 启动后不停弹出 curl / powershell 控制台窗口
