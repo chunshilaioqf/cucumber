@@ -158,7 +158,7 @@ pub fn build(ui_ref: &UiCtx) -> Element {
 
 fn update_dialog(ui: &UiCtx) -> Element {
     let body = Element::col()
-        .width(400)
+        .width(460)
         .spacing(12)
         .child(
             Element::label_signal(signal(String::new())).visible_when(move || false), // 占位保持布局
@@ -174,6 +174,7 @@ fn update_dialog(ui: &UiCtx) -> Element {
                 ),
         )
         .child(
+            // 第一行：主操作（查看网页下载 / 下载并安装）
             Element::hstack()
                 .spacing(10)
                 // 查看网页下载（任务 6：原「立即更新」改名）
@@ -222,8 +223,12 @@ fn update_dialog(ui: &UiCtx) -> Element {
                         });
                         ui.update_show.set(false);
                     }
-                }))
-                // 暂不：下次启动再提示
+                })),
+        )
+        .child(
+            // 第二行：次要操作（暂不 / 跳过此版本）——九语言文案长度差异大，分行防溢出
+            Element::hstack()
+                .spacing(10)
                 .child(Element::button(ui.t.u_later).neutral().on_click({
                     let ui = ui.clone();
                     move |_| ui.update_show.set(false)
@@ -245,7 +250,7 @@ fn update_dialog(ui: &UiCtx) -> Element {
     Element::dialog_panel(
         ui.update_show,
         ui.t.u_title,
-        430,
+        520,
         {
             let ui = ui.clone();
             move |_ctx| ui.update_show.set(false)
