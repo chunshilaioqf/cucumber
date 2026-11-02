@@ -232,6 +232,8 @@ fn gui_main(smoke: Option<u64>) {
     // ---- 端口探测任务（0.3.1，ADR-14）：每刷新周期探测全部服务地址 ----
     {
         let state = state.clone();
+        let state_rt = probe_handle.clone();
+        let mut tick: u32 = 0;
         probe_handle.spawn(async move {
             loop {
                 let (secs, procs) = {
@@ -244,9 +246,28 @@ fn gui_main(smoke: Option<u64>) {
                     *m = result.clone();
                 }
                 let mgr = state.mgr.clone();
+                tick = tick.wrapping_add(1);
                 for p in &procs {
-                    if let Some(up) = result.get(&p.id) {
-                        mgr.set_port_up(&p.id, *up);
+                    let Some(up) = result.get(&p.id) else {
+                        continue;
+                    };
+                    mgr.set_port_up(&p.id, *up);
+                    // PID 反查（0.5.0，ADR-20）：端口通且无缓存，或周期性重查（覆盖服务重启换 PID）
+                    if *up && (tick.is_multiple_of(5) || mgr.status_of(&p.id).port_pid.is_none()) {
+                        let ports: Vec<u16> = p
+                            .addresses
+                            .iter()
+                            .filter(|a| matches!(a.protocol.as_str(), "tcp" | "http" | "https"))
+                            .map(|a| a.port)
+                            .collect();
+                        let mgr2 = mgr.clone();
+                        let id = p.id.clone();
+                        state_rt.spawn_blocking(move || {
+                            let pid = ports
+                                .iter()
+                                .find_map(|p_| crate::core::port_probe::pid_listening_on(*p_));
+                            mgr2.set_port_pid(&id, pid);
+                        });
                     }
                 }
                 tokio::time::sleep(std::time::Duration::from_secs(secs)).await;

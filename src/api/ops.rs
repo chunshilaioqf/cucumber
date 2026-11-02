@@ -23,6 +23,8 @@ fn proc_view(cfg: &ProcessConfig, state: &SharedState) -> Value {
         "state_raw": format!("{:?}", st.effective_state()),
         "state_machine": st.state_or_default().label(),
         "port_up": st.port_up,
+        "port_pid": st.port_pid,
+        "pid": st.display_pid(),
         "externally_running": st.externally_running(),
         "pid": st.pid,
         "observe_pid": st.observe_pid,

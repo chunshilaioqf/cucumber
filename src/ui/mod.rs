@@ -521,9 +521,9 @@ impl UiCtx {
             if state == State::Running {
                 running += 1;
                 if p.ptype == ProcessType::WebService {
+                    // 0.5.0：外部启动服务经端口反查同样显示真实 PID
                     let pid_text = st
-                        .pid
-                        .or(st.observe_pid)
+                        .display_pid()
                         .map(|x| x.to_string())
                         .unwrap_or_else(|| "—".into());
                     for a in &p.addresses {
@@ -536,8 +536,8 @@ impl UiCtx {
                     }
                 }
             }
-            // 关联系统快照：PID 匹配取资源占用（FR-PROC-08/09）
-            let pid_any = st.pid.or(st.observe_pid);
+            // 关联系统快照：PID 匹配取资源占用（FR-PROC-08/09；0.5.0 含端口反查 PID）
+            let pid_any = st.display_pid();
             let res_text = snap
                 .as_ref()
                 .and_then(|s| s.procs.iter().find(|c| Some(c.pid) == pid_any))
@@ -548,9 +548,9 @@ impl UiCtx {
                 name: p.name.clone(),
                 type_label: p.ptype.label().to_string(),
                 state_label: st.state_label(),
+                // 0.5.0：外部启动服务显示端口反查的真实 PID
                 pid_text: st
-                    .pid
-                    .or(st.observe_pid)
+                    .display_pid()
                     .map(|x| x.to_string())
                     .unwrap_or_else(|| "—".into()),
                 res_text,

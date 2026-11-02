@@ -3,6 +3,17 @@
 本项目的所有显著变更都记录在本文件中。
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.5.0] - 2026-11-01
+
+### 新增：外部运行服务的真实 PID（ADR-20）
+
+- 端口探测判定「运行中（外部）」的同时，**反查监听该端口的进程 PID** 并在进程列表、服务列表显示（此前显示 —）。
+- 跨平台反查：Linux 走 `/proc/net/tcp{,6}` inode ↔ `/proc/<pid>/fd` 匹配（零子进程）；macOS 走 `lsof -Fp`；Windows 走 `netstat -ano`（CREATE_NO_WINDOW 防闪窗）。
+- **多监听进程取主 PID**：取数值最小的 PID（nginx master 先于 worker 创建）；netstat/lsof 取第一个监听行。
+- 缓存与重查：端口通且无缓存时反查；每 5 个刷新周期或端口断开后重连时重查（覆盖服务重启换 PID 场景）。
+- 资源占用关联（CPU/内存列）与 API `pid` 字段同样采用融合 PID（自有启动 > 系统观察 > 端口反查）；API 新增 `port_pid` 字段。
+- 测试 61 项（新增 Linux 真实监听反查、融合优先级矩阵）。
+
 ## [0.4.5] - 2026-11-01
 
 ### 修复

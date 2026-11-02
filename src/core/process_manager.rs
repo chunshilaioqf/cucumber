@@ -49,6 +49,8 @@ pub struct ProcStatus {
     /// 端口探测结论（0.3.1，ADR-14）：配置了地址的服务，任一 TCP/http/https 端口连通为 true。
     /// None = 未配置可探测地址。与状态机融合见 [`ProcStatus::effective_state`]。
     pub port_up: Option<bool>,
+    /// 端口反查到的监听 PID（0.5.0，ADR-20）：外部启动服务的真实 PID；多监听取最小（master）。
+    pub port_pid: Option<u32>,
 }
 
 impl ProcStatus {
@@ -67,6 +69,11 @@ impl ProcStatus {
     }
 
     /// 是否为「外部启动」：端口通但状态机不认为在跑。
+    /// 展示用 PID（0.5.0）：自有启动 > 系统观察 > 端口反查（外部启动的真实 PID）。
+    pub fn display_pid(&self) -> Option<u32> {
+        self.pid.or(self.observe_pid).or(self.port_pid)
+    }
+
     pub fn externally_running(&self) -> bool {
         self.port_up == Some(true) && self.state_or_default() != State::Running
     }
@@ -388,7 +395,17 @@ impl ProcessManager {
 
     /// 写入端口探测结论（0.3.1，ADR-14；由探测任务周期调用）。
     pub fn set_port_up(&self, id: &str, up: bool) {
-        self.set_state(id, |st| st.port_up = Some(up));
+        self.set_state(id, |st| {
+            st.port_up = Some(up);
+            if !up {
+                st.port_pid = None; // 端口断开：清缓存，重连后重查
+            }
+        });
+    }
+
+    /// 写入端口反查 PID（0.5.0，ADR-20）。
+    pub fn set_port_pid(&self, id: &str, pid: Option<u32>) {
+        self.set_state(id, |st| st.port_pid = pid);
     }
 
     /// 用系统快照刷新观察模式进程的状态（FR-PROC-07/13）。
