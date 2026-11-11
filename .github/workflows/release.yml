@@ -20,6 +20,9 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+      - name: Install protoc (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq protobuf-compiler
       - name: Compare tag with Cargo.toml version
         run: |
           set -euo pipefail
@@ -66,6 +69,9 @@ jobs:
             ext: ""
     steps:
       - uses: actions/checkout@v4
+      - name: Install protoc (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq protobuf-compiler
 
       - name: Install Linux GUI dependencies
         if: runner.os == 'Linux'
@@ -199,6 +205,9 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+      - name: Install protoc (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq protobuf-compiler
 
       - uses: actions/download-artifact@v4
         with:
@@ -233,6 +242,9 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+      - name: Install protoc (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq protobuf-compiler
 
       - uses: actions/download-artifact@v4
         with:
