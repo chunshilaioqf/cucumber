@@ -9,7 +9,7 @@ pub fn page(ui_ref: &UiCtx) -> Element {
     let ui = ui_ref.clone();
     let f = |key: &str| crate::ui::i18n::tr(ui.lang.get(), key);
     let status = Element::field(
-        "监听状态（仅 127.0.0.1）",
+        ui.t.a_status.get(),
         Element::col()
             .spacing(4)
             .child(Element::label_signal(ui.api_status).font_size(12.5)),
@@ -27,10 +27,15 @@ pub fn page(ui_ref: &UiCtx) -> Element {
                     .width(460)
                     .font_size(12.0),
             )
-            .child(Element::button("显示/隐藏").small().neutral().on_click({
-                let ui = ui.clone();
-                move |_| ui.token_show.update(|v| *v = !*v)
-            }))
+            .child(
+                Element::button(ui.t.a_showhide)
+                    .small()
+                    .neutral()
+                    .on_click({
+                        let ui = ui.clone();
+                        move |_| ui.token_show.update(|v| *v = !*v)
+                    }),
+            )
             .child(Element::button("复制").small().outline().on_click({
                 let app = ui.app.clone();
                 let ui = ui.clone();
@@ -48,14 +53,11 @@ pub fn page(ui_ref: &UiCtx) -> Element {
                 }
             }))
     };
-    let token = Element::field(
-        "本地令牌（Authorization: Bearer … 或 ?token=…）",
-        token_line,
-    );
+    let token = Element::field(ui.t.a_token.get(), token_line);
 
     // skill 安装（FR-SKILL-01~03）
     let skill = Element::card(
-        "Skill 一键安装",
+        ui.t.a_skillcard.get(),
         Element::col()
             .spacing(8)
             .width_match()
@@ -144,7 +146,7 @@ pub fn page(ui_ref: &UiCtx) -> Element {
     );
 
     let mcp_hint = Element::card(
-        "MCP 接入",
+        ui.t.a_mcp.get(),
         Element::col().spacing(4)
             .child(
                 Element::label("stdio（推荐，由 AI 宿主拉起）：")

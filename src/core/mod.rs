@@ -2,6 +2,7 @@
 
 pub mod config;
 pub mod gpu;
+pub mod hw;
 pub mod log_index;
 pub mod log_parser;
 pub mod port_probe;

@@ -90,6 +90,10 @@ impl Lang {
 }
 
 /// 翻译表：key × 9 语言（列顺序 = Lang::col）。
+pub fn tr_fmt(lang: Lang, key: &'static str, name: &str) -> String {
+    tr(lang, key).replace("{name}", name)
+}
+
 pub fn tr(lang: Lang, key: &str) -> String {
     let col = lang.col();
     for row in TABLE {
@@ -125,6 +129,35 @@ static TABLE: &[(&str, [&str; 9])] = &[
     // 对话框通用
     ("c.close",   ["关闭","關閉","Close","閉じる","닫기","Закрыть","Schließen","Fermer","Cerrar"]),
 
+    // ---------- 0.6.0 补全（按钮/卡片标题/提示） ----------
+    ("c.start",   ["启动","啟動","Start","開始","시작","Запуск","Start","Démarrer","Iniciar"]),
+    ("c.stop",    ["停止","停止","Stop","停止","중지","Стоп","Stopp","Arrêter","Detener"]),
+    ("c.check",   ["检查","檢查","Check","チェック","검사","Проверка","Prüfen","Vérifier","Comprobar"]),
+    ("c.edit",    ["编辑","編輯","Edit","編集","편집","Изменить","Bearbeiten","Modifier","Editar"]),
+    ("c.del",     ["删除","刪除","Delete","削除","삭제","Удалить","Löschen","Supprimer","Eliminar"]),
+    ("c.logs",    ["日志","日誌","Logs","ログ","로그","Журналы","Logs","Journaux","Registros"]),
+    ("a.status",  ["监听状态（仅 127.0.0.1）","監聽狀態（僅 127.0.0.1）","Listening status (127.0.0.1 only)","リスニング状態（127.0.0.1 のみ）","수신 상태(127.0.0.1 전용)","Статус прослушки (только 127.0.0.1)","Lauschstatus (nur 127.0.0.1)","État d'écoute (127.0.0.1 uniquement)","Estado de escucha (solo 127.0.0.1)"]),
+    ("a.token",   ["本地令牌（Authorization: Bearer … 或 ?token=…）","本機權杖（Authorization: Bearer … 或 ?token=…）","Local token (Authorization: Bearer … or ?token=…)","ローカルトークン（Authorization: Bearer … / ?token=…）","로컬 토큰(Authorization: Bearer … 또는 ?token=…)","Локальный токен (Authorization: Bearer … или ?token=…)","Lokales Token (Authorization: Bearer … oder ?token=…)","Jeton local (Authorization: Bearer … ou ?token=…)","Token local (Authorization: Bearer … o ?token=…)"]),
+    ("a.skillcard",["Skill 一键安装","Skill 一鍵安裝","One-click Skill install","Skill ワンクリック導入","Skill 원클릭 설치","Установка Skill в один клик","Skill mit einem Klick installieren","Installation Skill en un clic","Instalar Skill en un clic"]),
+    ("a.showhide",["显示/隐藏","顯示/隱藏","Show/Hide","表示/非表示","표시/숨기기","Показать/скрыть","Zeigen/Verbergen","Afficher/Masquer","Mostrar/Ocultar"]),
+    ("a.copy2",   ["复制","複製","Copy","コピー","복사","Копировать","Kopieren","Copier","Copiar"]),
+    ("a.mcp",     ["MCP 接入","MCP 接入","MCP integration","MCP 接続","MCP 연결","Интеграция MCP","MCP-Anbindung","Intégration MCP","Integración MCP"]),
+    ("a.install", ["安装 skill","安裝 skill","Install skill","Skill を導入","skill 설치","Установить skill","Skill installieren","Installer le skill","Instalar skill"]),
+    ("a.test",    ["检测连通","檢測連通","Test connectivity","接続テスト","연결 테스트","Проверить связь","Verbindung testen","Tester la connexion","Probar conexión"]),
+    ("h.about",   ["关于黄瓜（cucumber）","關於黃瓜（cucumber）","About cucumber","cucumber について","cucumber 정보","О cucumber","Über cucumber","À propos de cucumber","Acerca de cucumber"]),
+    ("h.diag",    ["快速诊断","快速診斷","Quick diagnosis","クイック診断","빠른 진단","Быстрая диагностика","Schnelldiagnose","Diagnostic rapide","Diagnóstico rápido"]),
+    ("h.run",     ["执行检测","執行檢測","Run check","実行","실행","Проверить","Ausführen","Exécuter","Ejecutar"]),
+    ("h.env",     ["环境信息","環境資訊","Environment info","環境情報","환경 정보","Сведения о среде","Umgebung","Environnement","Entorno"]),
+    ("h.faq",     ["常见问题","常見問題","FAQ","よくある質問","자주 묻는 질문","Частые вопросы","FAQ","FAQ","Preguntas frecuentes"]),
+    ("d2.adduse", ["添加与使用","新增與使用","Add & Use","追加と使用","추가 및 사용","Добавление и использование","Hinzufügen & Verwenden","Ajouter et utiliser","Añadir y usar"]),
+    ("d2.ai",     ["AI 接入","AI 接入","AI integration","AI 接続","AI 연결","Интеграция ИИ","KI-Anbindung","Intégration IA","Integración IA"]),
+    ("d2.note",   ["文档正文当前为简体中文，界面语言可在「设置」切换","文件正文目前為簡體中文，介面語言可在「設定」切換","Document body is Simplified Chinese; UI language switch in Settings","本文は簡体字中国語です。UI 言語は設定で切替","문서 본문은 중국어(간체)입니다. UI 언어는 설정에서 변경","Текст документа — упрощённый китайский; язык интерфейса — в настройках","Dokumenttext ist vereinfachtes Chinesisch; UI-Sprache in den Einstellungen","Corps du document en chinois simplifié ; langue UI dans Paramètres","Cuerpo del documento en chino simplificado; idioma de UI en Ajustes"]),
+    ("t.started", ["已发起启动：{name}","已發起啟動：{name}","Started: {name}","開始しました：{name}","시작 요청: {name}","Запуск: {name}","Gestartet: {name}","Démarré : {name}","Iniciado: {name}"]),
+    ("t.stopped", ["已停止：{name}","已停止：{name}","Stopped: {name}","停止しました：{name}","중지됨: {name}","Остановлено: {name}","Gestoppt: {name}","Arrêté : {name}","Detenido: {name}"]),
+    ("t.checkdone",["检查完成，退出码与输出已记录","檢查完成，退出碼與輸出已記錄","Check finished; exit code and output recorded","チェック完了。終了コードと出力を記録","검사 완료, 종료 코드와 출력 기록됨","Проверка завершена; код и вывод записаны","Prüfung abgeschlossen; Code und Ausgabe protokolliert","Vérification terminée ; code et sortie consignés","Comprobación terminada; código y salida registrados"]),
+    ("t.tokencopied",["令牌已复制","權杖已複製","Token copied","トークンをコピーしました","토큰 복사됨","Токен скопирован","Token kopiert","Jeton copié","Token copiado"]),
+    ("t.copied",  ["已复制到剪贴板","已複製到剪貼板","Copied to clipboard","クリップボードにコピーしました","클립보드에 복사됨","Скопировано в буфер","In die Zwischenablage kopiert","Copié dans le presse-papiers","Copiado al portapapeles"]),
+    ("t.nosrc",   ["请先为进程配置日志源","請先為進程配置日誌來源","Configure a log source first","先にログソースを設定してください","먼저 로그 소스를 구성하세요","Сначала задайте источник журналов","Zuerst eine Log-Quelle konfigurieren","Configurez d'abord une source","Configure primero una fuente"]),
     // 导航
     ("nav.dashboard", ["仪表盘","儀表盤","Dashboard","ダッシュボード","대시보드","Панель","Übersicht","Tableau de bord","Panel"]),
     ("nav.processes", ["进程","進程","Processes","プロセス","프로세스","Процессы","Prozesse","Processus","Procesos"]),

@@ -1,5 +1,11 @@
 //! 主窗口布局：菜单栏 + 页面标签（8 页，带 SVG 图标）+ 更新提醒对话框（任务 2/7）。
 
+/// 退出快捷键展示（任务 2）：macOS 惯例 Cmd+Q，Windows/Linux Alt+F4。
+#[cfg(target_os = "macos")]
+const EXIT_SHORTCUT: &str = "Cmd+Q";
+#[cfg(not(target_os = "macos"))]
+const EXIT_SHORTCUT: &str = "Alt+F4";
+
 use windui::prelude::*;
 
 use super::{about, api_page, dashboard, docs, icons, logs, processes, services, settings, UiCtx};
@@ -27,7 +33,7 @@ pub fn build(ui_ref: &UiCtx) -> Element {
                 MenuItem::separator(),
                 MenuItem::run(ui.t.m_exit.get(), |ctx| ctx.request_close(), false)
                     .shortcut("Alt+F4")
-                    .shortcut("Alt+F4"),
+                    .shortcut(EXIT_SHORTCUT),
             ]
         }
     };

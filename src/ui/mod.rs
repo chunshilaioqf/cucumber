@@ -269,6 +269,29 @@ pub struct Texts {
     pub f_addrs: Signal<String>,
     pub f_logs: Signal<String>,
     pub f_editortitle: Signal<String>,
+    // 0.6.0 补全（按钮/卡片标题）
+    pub c_start: Signal<String>,
+    pub c_stop: Signal<String>,
+    pub c_check: Signal<String>,
+    pub c_edit: Signal<String>,
+    pub c_del: Signal<String>,
+    pub c_logs: Signal<String>,
+    pub a_status: Signal<String>,
+    pub a_token: Signal<String>,
+    pub a_skillcard: Signal<String>,
+    pub a_showhide: Signal<String>,
+    pub a_copy2: Signal<String>,
+    pub a_mcp: Signal<String>,
+    pub a_install: Signal<String>,
+    pub a_test: Signal<String>,
+    pub h_about: Signal<String>,
+    pub h_diag: Signal<String>,
+    pub h_run: Signal<String>,
+    pub h_env: Signal<String>,
+    pub h_faq: Signal<String>,
+    pub d2_adduse: Signal<String>,
+    pub d2_ai: Signal<String>,
+    pub d2_note: Signal<String>,
 }
 
 impl Texts {
@@ -336,6 +359,28 @@ impl Texts {
             f_addrs: f("f.addrs"),
             f_logs: f("f.logs"),
             f_editortitle: f("f.editortitle"),
+            c_start: f("c.start"),
+            c_stop: f("c.stop"),
+            c_check: f("c.check"),
+            c_edit: f("c.edit"),
+            c_del: f("c.del"),
+            c_logs: f("c.logs"),
+            a_status: f("a.status"),
+            a_token: f("a.token"),
+            a_skillcard: f("a.skillcard"),
+            a_showhide: f("a.showhide"),
+            a_copy2: f("a.copy2"),
+            a_mcp: f("a.mcp"),
+            a_install: f("a.install"),
+            a_test: f("a.test"),
+            h_about: f("h.about"),
+            h_diag: f("h.diag"),
+            h_run: f("h.run"),
+            h_env: f("h.env"),
+            h_faq: f("h.faq"),
+            d2_adduse: f("d2.adduse"),
+            d2_ai: f("d2.ai"),
+            d2_note: f("d2.note"),
         }
     }
 
@@ -402,6 +447,28 @@ impl Texts {
             (&self.f_addrs, "f.addrs"),
             (&self.f_logs, "f.logs"),
             (&self.f_editortitle, "f.editortitle"),
+            (&self.c_start, "c.start"),
+            (&self.c_stop, "c.stop"),
+            (&self.c_check, "c.check"),
+            (&self.c_edit, "c.edit"),
+            (&self.c_del, "c.del"),
+            (&self.c_logs, "c.logs"),
+            (&self.a_status, "a.status"),
+            (&self.a_token, "a.token"),
+            (&self.a_skillcard, "a.skillcard"),
+            (&self.a_showhide, "a.showhide"),
+            (&self.a_copy2, "a.copy2"),
+            (&self.a_mcp, "a.mcp"),
+            (&self.a_install, "a.install"),
+            (&self.a_test, "a.test"),
+            (&self.h_about, "h.about"),
+            (&self.h_diag, "h.diag"),
+            (&self.h_run, "h.run"),
+            (&self.h_env, "h.env"),
+            (&self.h_faq, "h.faq"),
+            (&self.d2_adduse, "d2.adduse"),
+            (&self.d2_ai, "d2.ai"),
+            (&self.d2_note, "d2.note"),
         ];
         for (sig, key) in pairs {
             sig.set(i18n::tr(lang, key));
@@ -623,14 +690,48 @@ impl UiCtx {
             } else {
                 self.sub_disk.set("—".into());
             }
-            match sn.gpu_percent {
-                Some(g) => {
-                    self.g_gpu.set(g / 100.0);
-                    self.sub_gpu.set(format!("{g:.0}%"));
+            self.g_gpu.set(sn.gpu_percent.unwrap_or(0.0) / 100.0);
+            // 0.6.0：all-smi 详情（显存/温度/功耗/型号）；无数据退化为利用率
+            let mut parts: Vec<String> = Vec::new();
+            if !sn.gpu_name.as_deref().unwrap_or("").is_empty() {
+                let name = sn.gpu_name.clone().unwrap();
+                // 型号过长截断
+                let name = if name.chars().count() > 22 {
+                    name.chars().take(22).collect::<String>() + "…"
+                } else {
+                    name
+                };
+                parts.push(name);
+            }
+            if sn.gpu_total_bytes > 0 {
+                parts.push(format!(
+                    "{}/{}",
+                    human_bytes(sn.gpu_used_bytes),
+                    human_bytes(sn.gpu_total_bytes)
+                ));
+            }
+            if let Some(t) = sn.gpu_temp_c {
+                parts.push(format!("{t}℃"));
+            }
+            if let Some(w) = sn.gpu_power_w {
+                parts.push(format!("{w:.0}W"));
+            }
+            if sn.gpu_count > 1 {
+                parts.push(format!("×{}", sn.gpu_count));
+            }
+            self.sub_gpu.set(if parts.is_empty() {
+                match sn.gpu_percent {
+                    Some(g) => format!("{g:.0}%"),
+                    None => "N/A".to_string(),
                 }
-                None => {
-                    self.g_gpu.set(0.0);
-                    self.sub_gpu.set("N/A".into());
+            } else {
+                parts.join(" · ")
+            });
+            // CPU 副文本附加温度（all-smi）
+            if let Some(t) = sn.cpu_temp_c {
+                let base = self.sub_cpu.get();
+                if !base.contains('℃') {
+                    self.sub_cpu.set(format!("{base} · {t}℃"));
                 }
             }
             self.sub_net.set(format!(

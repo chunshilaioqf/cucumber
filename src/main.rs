@@ -392,17 +392,26 @@ fn gui_main(smoke: Option<u64>) {
     // ---- 全局快捷键：Ctrl+1..8 切页，Ctrl+N 新建进程 ----
     {
         let ui = uictx.clone();
-        app = app.on_shortcut(move |_ctx, ev| {
-            if ev.ctrl && ev.pressed {
+        // 任务 2：修饰键平台匹配——macOS 用 Cmd，Windows/Linux 用 Ctrl
+        app = app.on_shortcut(move |ctx, ev| {
+            let primary = ev.ctrl || ev.meta;
+            if ev.pressed {
+                // Cmd+Q / Ctrl+Q：退出（macOS 系统习惯）
                 if let windui::event::Key::Char(c) = ev.key {
-                    if c.is_ascii_digit() && (b'1'..=b'8').contains(&(c as u8)) {
-                        ui.page.set((c as u8 - b'1') as usize);
+                    if (c == 'q' || c == 'Q') && primary {
+                        ctx.request_close();
                         return true;
                     }
-                    if c == 'n' || c == 'N' {
-                        ui::processes::open_editor_new(&ui);
-                        ui.page.set(1);
-                        return true;
+                    if primary {
+                        if c.is_ascii_digit() && (b'1'..=b'8').contains(&(c as u8)) {
+                            ui.page.set((c as u8 - b'1') as usize);
+                            return true;
+                        }
+                        if c == 'n' || c == 'N' {
+                            ui::processes::open_editor_new(&ui);
+                            ui.page.set(1);
+                            return true;
+                        }
                     }
                 }
             }

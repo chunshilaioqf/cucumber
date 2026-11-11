@@ -215,6 +215,17 @@ impl Ops {
             "mem_percent": if mem_total > 0 {
                 (mem_used as f64 / mem_total as f64 * 1000.0).round() / 10.0
             } else { 0.0 },
+            // 0.6.0：GPU/CPU 详情（all-smi，ADR-21）
+            "gpu": snap.as_ref().map(|s| json!({
+                "percent": s.gpu_percent,
+                "used_bytes": s.gpu_used_bytes,
+                "total_bytes": s.gpu_total_bytes,
+                "temp_c": s.gpu_temp_c,
+                "power_w": s.gpu_power_w,
+                "name": s.gpu_name,
+                "count": s.gpu_count,
+            })).unwrap_or(serde_json::Value::Null),
+            "cpu_temp_c": snap.as_ref().and_then(|s| s.cpu_temp_c),
         })
     }
 

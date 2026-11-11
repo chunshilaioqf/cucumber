@@ -3,6 +3,15 @@
 本项目的所有显著变更都记录在本文件中。
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.6.0] - 2026-11-11
+
+### 新增 / 改进
+
+- **GPU 与机器资源接入 [`all-smi`] 库（ADR-21）**：`AllSmi::new()`（OnceLock 一次初始化）统一采集——NVIDIA/AMD/Apple Silicon/Intel 及 NPU（Gaudi/TPU/Tenstorrent/Rebellions/Furiosa）全厂商；内置三路（ioreg/WMI/sysfs）降级为回退。GPU 卡副文本升级为「型号 · 显存 x/y · 温度 · 功耗 ×卡数」，CPU 副文本附加温度；`/api/dashboard` 新增 `gpu` 对象（percent/used/total/temp/power/name/count）与 `cpu_temp_c`。依赖以 `default-features = false` 最小接入（裁掉 CLI/axum/TUI 与 AMD companion）。
+- **快捷键平台匹配（任务 2）**：主快捷键改为 Ctrl/Cmd 自适应（macOS ⌘1..8 切页、⌘N 新建、**⌘Q 退出**，Windows/Linux 同键位用 Ctrl；菜单展示 macOS 显示 Cmd+Q、其他平台 Alt+F4）。
+- **本地化补全（任务 3）**：进程操作按钮（启动/停止/检查/编辑/删除/日志）、对外接口页（状态/令牌/Skill 安装/MCP 卡片标题与按钮）、帮助页（关于/诊断/环境/FAQ 标题）、使用说明页（分节标题 + 「正文为简体中文，可在设置切换语言」提示）、服务页（复制/打开/提示）、跨页 toast（启动/停止/检查/复制/无日志源）全部接入九语言字典；切换即时生效并持久化。
+- 测试 62 项。
+
 ## [0.5.0] - 2026-11-01
 
 ### 新增：外部运行服务的真实 PID（ADR-20）

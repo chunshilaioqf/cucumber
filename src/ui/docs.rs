@@ -5,13 +5,17 @@ use windui::prelude::*;
 use super::kit;
 use crate::docs_embed;
 
-pub fn page(_ui: &crate::ui::UiCtx) -> Element {
+pub fn page(ui: &crate::ui::UiCtx) -> Element {
+    // 0.6.0：注明正文语言 + 语言切换指引（i18n）
+    let note = Element::label_signal(ui.t.d2_note)
+        .fg_role(Role::TextMuted)
+        .font_size(12.0);
     let usage = Element::card(
-        "添加与使用",
+        ui.t.d2_adduse.get(),
         Element::rich(kit::markdown_doc(docs_embed::USAGE)),
     );
     let ai = Element::card(
-        "AI 接入",
+        ui.t.d2_ai.get(),
         Element::rich(kit::markdown_doc(docs_embed::AI_GUIDE)),
     );
     Element::scroll().child(
@@ -19,6 +23,7 @@ pub fn page(_ui: &crate::ui::UiCtx) -> Element {
             .fill()
             .padding(16)
             .spacing(14)
+            .child(note)
             .child(usage)
             .child(ai),
     )

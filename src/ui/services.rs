@@ -37,18 +37,19 @@ pub fn page(ui_ref: &UiCtx) -> Element {
 }
 
 fn row(ui: &UiCtx, r: SvcRow) -> Element {
-    let mut actions =
-        Element::hstack()
-            .spacing(6)
-            .child(Element::button("复制 URL").small().outline().on_click({
-                let url = r.url.clone();
-                move |ctx| {
-                    ctx.clipboard_set(&url);
-                    ctx.toast_ok("已复制到剪贴板");
-                }
-            }));
+    let mut actions = Element::hstack().spacing(6).child(
+        Element::button(ui.t.sv_copy).small().outline().on_click({
+            let url = r.url.clone();
+            let lang = ui.lang.get();
+            move |ctx| {
+                ctx.clipboard_set(&url);
+                ctx.toast_ok(crate::ui::i18n::tr(lang, "t.copied"));
+            }
+        }),
+    );
+    let open_label = crate::ui::i18n::tr(ui.lang.get(), "c.open");
     if r.openable {
-        actions = actions.child(Element::button("打开").small().on_click({
+        actions = actions.child(Element::button(open_label).small().on_click({
             let (rt, tx) = (ui.rt.clone(), ui.tx.clone());
             let url = r.url.clone();
             move |_| {

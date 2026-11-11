@@ -7,7 +7,7 @@ use super::{UiCtx, UiMsg};
 
 pub fn page(ui: &UiCtx) -> Element {
     let version = Element::card(
-        "关于黄瓜（cucumber）",
+        ui.t.h_about.get(),
         Element::col()
             .spacing(4)
             .child(
@@ -73,7 +73,7 @@ pub fn page(ui: &UiCtx) -> Element {
 
     // 快速诊断（FR-HELP-02）
     let diag = Element::card(
-        "快速诊断",
+        ui.t.h_diag.get(),
         Element::col()
             .spacing(8)
             .width_match()
@@ -108,7 +108,7 @@ pub fn page(ui: &UiCtx) -> Element {
     );
 
     let env_info = Element::card(
-        "环境信息",
+        ui.t.h_env.get(),
         Element::col()
             .spacing(4)
             .child(Element::label(format!("平台：{}", std::env::consts::OS)).font_size(12.5))
@@ -125,7 +125,7 @@ pub fn page(ui: &UiCtx) -> Element {
     );
 
     let faq = Element::card(
-        "常见问题",
+        ui.t.h_faq.get(),
         Element::rich(kit::markdown_doc(
             "- **进程启动失败？** 「进程」页点「编辑」检查命令；命令输出保留在 get_process 的 recent_output（API 可查）。\n\
              - **日志高亮不生效？** 检查日志源格式配置（json_lines/logfmt/bracket/plain）；plain 按整词嗅探级别。\n\

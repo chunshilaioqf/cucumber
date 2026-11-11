@@ -64,17 +64,18 @@ fn row(ui: &UiCtx, r: ProcRow) -> Element {
 
     if r.has_start {
         actions = actions.child(
-            Element::button("启动")
+            Element::button(ui.t.c_start)
                 .small()
                 .on_click({
                     let (ui2, id2, name2) = (ui.clone(), r.id.clone(), r.name.clone());
+                    let lang = ui.lang.get();
                     let (tx, rt) = (ui.tx.clone(), ui.rt.clone());
                     move |_| {
                         let (ui3, id3) = (ui2.clone(), id2.clone());
                         spawn_op(
                             tx.clone(),
                             &rt,
-                            format!("已发起启动：{name2}"),
+                            crate::ui::i18n::tr_fmt(lang, "t.started", &name2),
                             move || {
                                 let state = ui3.app.clone();
                                 let id4 = id3.clone();
@@ -89,42 +90,48 @@ fn row(ui: &UiCtx, r: ProcRow) -> Element {
         );
     }
     if r.has_stop {
-        actions =
-            actions.child(
-                Element::button("停止")
-                    .small()
-                    .outline()
-                    .on_click({
-                        let (ui2, id2, name2) = (ui.clone(), r.id.clone(), r.name.clone());
-                        let (tx, rt) = (ui.tx.clone(), ui.rt.clone());
-                        move |_| {
-                            let (ui3, id3) = (ui2.clone(), id2.clone());
-                            spawn_op(tx.clone(), &rt, format!("已停止：{name2}"), move || {
-                                let state = ui3.app.clone();
-                                let id4 = id3.clone();
-                                async move {
-                                    crate::api::ops::Ops { state }.stop(&id4).await.map(|_| ())
-                                }
-                            });
-                        }
-                    })
-                    .enabled_when(move || !busy),
-            );
-    }
-    if r.has_check {
         actions = actions.child(
-            Element::button("检查")
+            Element::button(ui.t.c_stop)
                 .small()
                 .outline()
                 .on_click({
-                    let (ui2, id2) = (ui.clone(), r.id.clone());
+                    let (ui2, id2, name2) = (ui.clone(), r.id.clone(), r.name.clone());
+                    let lang = ui.lang.get();
                     let (tx, rt) = (ui.tx.clone(), ui.rt.clone());
                     move |_| {
                         let (ui3, id3) = (ui2.clone(), id2.clone());
                         spawn_op(
                             tx.clone(),
                             &rt,
-                            "检查完成，退出码与输出已记录".into(),
+                            crate::ui::i18n::tr_fmt(lang, "t.stopped", &name2),
+                            move || {
+                                let state = ui3.app.clone();
+                                let id4 = id3.clone();
+                                async move {
+                                    crate::api::ops::Ops { state }.stop(&id4).await.map(|_| ())
+                                }
+                            },
+                        );
+                    }
+                })
+                .enabled_when(move || !busy),
+        );
+    }
+    if r.has_check {
+        actions = actions.child(
+            Element::button(ui.t.c_check)
+                .small()
+                .outline()
+                .on_click({
+                    let (ui2, id2) = (ui.clone(), r.id.clone());
+                    let lang = ui.lang.get();
+                    let (tx, rt) = (ui.tx.clone(), ui.rt.clone());
+                    move |_| {
+                        let (ui3, id3) = (ui2.clone(), id2.clone());
+                        spawn_op(
+                            tx.clone(),
+                            &rt,
+                            crate::ui::i18n::tr(lang, "t.checkdone"),
                             move || {
                                 let state = ui3.app.clone();
                                 let id4 = id3.clone();
@@ -139,12 +146,12 @@ fn row(ui: &UiCtx, r: ProcRow) -> Element {
         );
     }
     actions = actions
-        .child(Element::button("编辑").small().neutral().on_click({
+        .child(Element::button(ui.t.c_edit).small().neutral().on_click({
             let (ui2, id2) = (ui.clone(), r.id.clone());
             move |_| open_editor_edit(&ui2, &id2)
         }))
         .child(
-            Element::button("删除")
+            Element::button(ui.t.c_del)
                 .small()
                 .danger()
                 .outline()

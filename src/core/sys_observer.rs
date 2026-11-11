@@ -28,6 +28,15 @@ pub struct Snapshot {
     pub net_up_bps: u64,
     /// GPU：sysinfo 无此能力，恒为 None（帮助页说明限制）
     pub gpu_percent: Option<f32>,
+    /// GPU 详情（0.6.0，all-smi）：显存 / 温度 / 功耗 / 型号 / 卡数
+    pub gpu_used_bytes: u64,
+    pub gpu_total_bytes: u64,
+    pub gpu_temp_c: Option<u32>,
+    pub gpu_power_w: Option<f64>,
+    pub gpu_name: Option<String>,
+    pub gpu_count: usize,
+    /// CPU 温度（0.6.0，all-smi）
+    pub cpu_temp_c: Option<u32>,
 }
 
 pub struct SysObserver {
@@ -117,6 +126,10 @@ impl SysObserver {
             .collect();
         procs.sort_by(|a, b| b.cpu_percent.total_cmp(&a.cpu_percent));
 
+        // 0.6.0：GPU/CPU 温度经 all-smi（回退内置三路，ADR-21）
+        let gpu_stat = crate::core::hw::gpu();
+        let cpu_stat = crate::core::hw::cpu();
+
         Snapshot {
             cpu_percent,
             mem_used_bytes: self.sys.used_memory(),
@@ -126,7 +139,17 @@ impl SysObserver {
             disk_total_bytes: disk_total,
             net_down_bps,
             net_up_bps,
-            gpu_percent: crate::core::gpu::gpu_percent(),
+            gpu_percent: gpu_stat.as_ref().map(|g| g.utilization),
+            gpu_used_bytes: gpu_stat.as_ref().map(|g| g.used_bytes).unwrap_or(0),
+            gpu_total_bytes: gpu_stat.as_ref().map(|g| g.total_bytes).unwrap_or(0),
+            gpu_temp_c: gpu_stat.as_ref().and_then(|g| g.temp_c),
+            gpu_power_w: gpu_stat.as_ref().and_then(|g| g.power_w),
+            gpu_name: gpu_stat
+                .as_ref()
+                .map(|g| g.name.clone())
+                .filter(|n| !n.is_empty()),
+            gpu_count: gpu_stat.as_ref().map(|g| g.count).unwrap_or(0),
+            cpu_temp_c: cpu_stat.temp_c,
         }
     }
 }

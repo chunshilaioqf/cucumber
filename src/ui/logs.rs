@@ -165,7 +165,10 @@ fn render_line(line: &LogLine, no: usize, q: &str) -> Element {
 /// `page` 为目标页码（0 基）；超大值会被钳制到最后一页。
 pub fn spawn_query(ui: &UiCtx, page: usize) {
     let Some((_proc_id, src)) = ui.log_selection() else {
-        let _ = ui.tx.send(UiMsg::ToastErr("请先为进程配置日志源".into()));
+        let _ = ui.tx.send(UiMsg::ToastErr(crate::ui::i18n::tr(
+            ui.lang.get(),
+            "t.nosrc",
+        )));
         return;
     };
     // 在 UI 线程收齐全部参数（Signal 读取），后台任务只携带 Send 数据
